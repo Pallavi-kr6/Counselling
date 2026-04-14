@@ -14,7 +14,7 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
-import { FiArrowLeft, FiUser, FiActivity, FiTrendingUp, FiClock, FiFileText, FiCheckCircle } from 'react-icons/fi';
+import { FiArrowLeft, FiUser, FiActivity, FiTrendingUp, FiClock, FiFileText, FiCheckCircle, FiCpu } from 'react-icons/fi';
 import './Dashboard.css';
 
 ChartJS.register(
@@ -33,17 +33,37 @@ const CounsellorStudentDetail = () => {
   const { studentId } = useParams();
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [brief, setBrief] = useState(null);
+  const [briefLoading, setBriefLoading] = useState(false);
+  const [phq9Data, setPhq9Data] = useState(null);
 
   const fetchDetails = useCallback(async () => {
     try {
       const response = await api.get(`/appointments/counsellor/student/${studentId}`);
       setDetails(response.data);
+      
+      const phqResponse = await api.get(`/appointments/student-phq9/${studentId}`);
+      if (phqResponse.data.scores?.length > 0) {
+        setPhq9Data(phqResponse.data.scores[phqResponse.data.scores.length - 1]); // latest
+      }
     } catch (err) {
       console.error(err.response?.data?.error || 'Failed to load student details');
     } finally {
       setLoading(false);
     }
   }, [studentId]);
+
+  const fetchBrief = async () => {
+    setBriefLoading(true);
+    try {
+      const response = await api.get(`/appointments/pre-session-brief/student/${studentId}`);
+      setBrief(response.data);
+    } catch (err) {
+      console.error('Failed to load AI brief', err);
+    } finally {
+      setBriefLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!user || user.userType !== 'counsellor') {
@@ -170,9 +190,41 @@ const CounsellorStudentDetail = () => {
               </div>
             </motion.div>
             
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="clinical-notes-card glass-card">
-              <h3><FiFileText /> Quick Notes</h3>
-              <p className="note-placeholder">Add clinical observations or summary of progress here in future updates.</p>
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="clinical-notes-card glass-card ai-brief-card">
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3><FiCpu /> Pre-Session Brief</h3>
+                {!brief && (
+                  <button 
+                    className="btn-outline-mini" 
+                    onClick={fetchBrief} 
+                    disabled={briefLoading}
+                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '4px', cursor: 'pointer', background: 'rgba(46, 196, 182, 0.1)', color: '#2ec4b6', border: '1px solid #2ec4b6' }}
+                  >
+                    {briefLoading ? 'Analyzing...' : 'Generate AI Brief'}
+                  </button>
+                )}
+              </div>
+              
+              {brief ? (
+                <div className="brief-content" style={{ marginTop: '1rem', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #667eea' }}>
+                  {phq9Data && (
+                    <div style={{ marginBottom: '1rem', paddingBottom: '0.8rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                      <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: '600' }}>Latest PHQ-9 Score:</span>
+                      <span style={{ marginLeft: '0.5rem', background: phq9Data.total_score >= 10 ? '#e74c3c' : '#f1c40f', color: '#000', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                        {phq9Data.total_score} / 27
+                      </span>
+                    </div>
+                  )}
+                  <p style={{ fontSize: '0.95rem', lineHeight: '1.6', color: '#e2e8f0', marginBottom: '0.5rem' }}>{brief.brief}</p>
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                    <span>Analyzed from: {brief.messageCount} messages</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="note-placeholder" style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#94a3b8' }}>
+                  Click to generate an AI summary of the student's recent bot interactions and view check-ins before your session.
+                </p>
+              )}
             </motion.div>
           </aside>
         </div>

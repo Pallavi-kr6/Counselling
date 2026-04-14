@@ -181,4 +181,28 @@ function calculateMoodStats(entries) {
   };
 }
 
+// Get AI mood logs trend data for Recharts
+router.get('/ai-logs-trend', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { data: moodLogs, error } = await supabase
+      .from('mood_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+      .limit(50); // Get latest 50 logs for trend analysis
+
+    if (error && error.code !== 'PGRST116') throw error;
+
+    res.json({ logs: moodLogs || [] });
+  } catch (error) {
+    console.error('Fetch AI mood logs error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 module.exports = router;

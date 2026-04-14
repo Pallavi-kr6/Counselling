@@ -48,6 +48,7 @@ app.use('/api/mood', require('./routes/mood'));
 app.use('/api/resources', require('./routes/resources'));
 app.use('/api/feedback', require('./routes/feedback'));
 app.use('/api/chat', require('./routes/chat'));
+app.use('/api/admin', require('./routes/admin'));
 const zoomRouter = require('./routes/zoom');
 app.use('/api/zoom', zoomRouter);
 

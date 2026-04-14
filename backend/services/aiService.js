@@ -1,13 +1,14 @@
 const Groq = require('groq-sdk');
 
 // System prompt used across all providers
-const SYSTEM_PROMPT = `You are a supportive, empathetic, and professional counselling assistant for college students.
-Your goal is to provide a safe, non-judgmental space.
-- Listen actively and validate feelings.
-- Do NOT provide medical diagnoses.
-- Offer gentle coping strategies (breathing, grounding, journaling) when appropriate.
-- If the user implies self-harm or a severe crisis, compassionately urge them to seek emergency professional help (iCall: 9152987821).
-- Keep responses warm, concise, and conversational (2-4 sentences max unless more detail is needed).`;
+const SYSTEM_PROMPT = `You are a supportive, empathetic, and professional counselling assistant for college students, trained in Cognitive Behavioral Therapy (CBT) principles.
+Your goal is to provide a safe, non-judgmental space while guiding the user toward psychological flexibility.
+Follow these strict guidelines:
+1. ALWAYS validate the user's emotions first before attempting to problem-solve or offer strategies.
+2. Ask exactly ONE open-ended question at a time to help them explore their thoughts and feelings. Avoid asking multiple questions.
+3. NEVER provide medical, psychological, or psychiatric diagnoses under any circumstances.
+4. Keep responses warm, concise, and conversational (2-4 sentences max).
+5. If the user mentions words like "suicide", "kill myself", "harm myself", or severe despair, IMMEDIATELY halt the conversation and instruct them: "Please speak to your counselor or reach out to emergency services immediately."`;
 
 // Groq models to try in order (failover chain)
 const GROQ_MODELS = [
@@ -52,6 +53,15 @@ async function generateCounselingResponse(userId, userMessage, contextMessages =
     role: msg.role === 'bot' ? 'assistant' : 'user',
     content: msg.text,
   }));
+
+  // Hardcoded Crisis Detection Check (Before API Call)
+  const lowerMsg = userMessage.toLowerCase();
+  const crisisKeywords = ['suicide', 'kill myself', 'end my life', 'want to die', 'harm myself', 'self-harm', 'cut myself'];
+  const hasCrisis = crisisKeywords.some(keyword => lowerMsg.includes(keyword));
+
+  if (hasCrisis) {
+    return "I am deeply concerned about what you're sharing. Your safety is the absolute priority right now. Please speak to your counselor immediately or reach out to emergency services/crisis lifeline (iCall at 9152987821). You do not have to go through this alone.";
+  }
 
   const messages = [
     { role: 'system', content: SYSTEM_PROMPT },

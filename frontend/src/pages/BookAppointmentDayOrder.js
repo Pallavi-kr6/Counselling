@@ -78,7 +78,7 @@ const BookAppointmentDayOrder = () => {
     setLoading(true);
     setError('');
     try {
-      await api.post('/appointments/book-day-order', {
+      const resp = await api.post('/appointments/book-day-order', {
         dayOrderId: selectedDayOrder.id,
         counsellorId: selectedCounsellor.counsellor_id,
         date: selectedDate,
@@ -86,8 +86,12 @@ const BookAppointmentDayOrder = () => {
         endTime: selectedSlot.end_time,
         notes
       });
+      const aptId = resp.data?.appointment?.id;
       setSuccess('Your session is scheduled. We are here for you.');
-      setTimeout(() => navigate('/appointments'), 2000);
+      setTimeout(() => {
+        if (aptId) navigate(`/phq9/${aptId}`);
+        else navigate('/appointments');
+      }, 2000);
     } catch (err) {
       setError(err.response?.data?.error || 'Booking encountered an issue. Let\'s try again.');
     } finally {

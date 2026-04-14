@@ -1705,4 +1705,202 @@ router.post('/book-day-order', verifyToken, async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────
+// PRE-SESSION BRIEF  (counsellor only)
+// GET /api/appointments/pre-session-brief/student/:studentId
+// Returns a 3-sentence AI summary of the student's recent bot conversations.
+// ─────────────────────────────────────────────
+router.get('/pre-session-brief/student/:studentId', verifyToken, async (req, res) => {
+  try {
+    if (req.user.userType !== 'counsellor') {
+      return res.status(403).json({ error: 'Only counsellors can view pre-session briefs' });
+    }
+
+    const { studentId } = req.params;
+
+    // 1. Verify this counsellor has (or had) an appointment with this student
+    const { data: appointment, error: apptError } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('student_id', studentId)
+      .eq('counsellor_id', req.user.userId)
+      .limit(1);
+
+    if (apptError || !appointment || appointment.length === 0) {
+      return res.status(403).json({ error: 'Not authorized to view this student\'s records.' });
+    }
+
+    // 2. Fetch recent chat messages from the sessions table
+    const { data: sessionData, error: msgError } = await supabase
+      .from('sessions')
+      .select('messages')
+      .eq('user_id', studentId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    let recentMessages = [];
+    if (sessionData && Array.isArray(sessionData.messages)) {
+      recentMessages = sessionData.messages
+        .filter(m => m.role === 'user')
+        .slice(-30); // get up to 30 recent user messages
+    } else if (msgError && msgError.code !== 'PGRST116') {
+      console.error('sessions fetch error:', msgError);
+    }
+
+    // 3. Also fetch mood data as supplementary context
+    const { data: moods } = await supabase
+      .from('mood_tracking')
+      .select('date, mood, stress_level, notes')
+      .eq('user_id', studentId)
+      .order('date', { ascending: false })
+      .limit(7);
+
+    // 4. If no chat messages, generate brief from mood data only
+    let brief = null;
+
+    if (recentMessages.length === 0 && (!moods || moods.length === 0)) {
+      return res.json({
+        brief: 'No bot conversations or mood check-ins available for this student yet. Consider asking them to use the AI Counselling chat before their session.',
+        generatedAt: new Date().toISOString(),
+        messageCount: 0,
+      });
+    }
+
+    // 5. Build context string for the AI
+    let contextText = '';
+    if (recentMessages.length > 0) {
+      const msgText = recentMessages
+        .slice(0, 20)
+        .reverse()
+        .map(m => `Student: ${m.content}`)
+        .join('\n');
+      contextText += `--- Recent Bot Conversation Messages ---\n${msgText}\n`;
+    }
+    if (moods && moods.length > 0) {
+      const moodText = moods
+        .map(m => `Date: ${m.date}, Mood: ${m.mood}/10, Stress: ${m.stress_level || '?'}/10${m.notes ? `, Notes: "${m.notes}"` : ''}`)
+        .join('\n');
+      contextText += `\n--- Recent Mood Check-ins ---\n${moodText}`;
+    }
+
+    // 6. Generate brief using Groq
+    const Groq = require('groq-sdk');
+    if (!process.env.GROQ_API_KEY) {
+      return res.json({
+        brief: 'AI summary unavailable (GROQ_API_KEY not configured). Based on available data, please review the student\'s mood trends and conversation history manually.',
+        generatedAt: new Date().toISOString(),
+        messageCount: recentMessages.length,
+        fallback: true,
+      });
+    }
+
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama3-8b-8192', 'llama3-70b-8192', 'mixtral-8x7b-32768'];
+
+    const prompt = `Summarize the student's main concerns, emotional state, and any recurring themes from these messages in EXACTLY 3 sentences for a counselor preparing for a session. Be clinical and neutral in tone.\n\n${contextText}`;
+
+    for (const model of GROQ_MODELS) {
+      try {
+        const completion = await groq.chat.completions.create({
+          model,
+          messages: [
+            { role: 'system', content: 'You are a clinical preparation assistant. Write exactly 3 sentences. Be objective and concise.' },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.3,
+          max_tokens: 250,
+        });
+        brief = completion.choices[0].message.content.trim();
+        break;
+      } catch (err) {
+        // Try next model silently
+      }
+    }
+
+    if (!brief) {
+      // Fallback
+      brief = `The student has had ${recentMessages.length} recent AI chat interactions with themes related to their mood check-ins. Please review their recent messages and mood data for a full clinical picture before the session.`;
+    }
+
+    return res.json({
+      brief,
+      generatedAt: new Date().toISOString(),
+      messageCount: recentMessages.length,
+      moodEntryCount: moods?.length || 0,
+    });
+  } catch (error) {
+    console.error('Pre-session brief error:', error);
+    res.status(500).json({ error: 'Failed to generate pre-session brief' });
+  }
+});
+
+// ────────────────────────────────────────────────────────────────
+// QUESTIONNAIRE ENDPOINTS
+// ────────────────────────────────────────────────────────────────
+
+// Submit a PHQ-9 form
+router.post('/phq9', verifyToken, async (req, res) => {
+  try {
+    const { appointmentId, responses, totalScore } = req.body;
+    const userId = req.user.userId || req.user.id;
+
+    if (!appointmentId || !responses) {
+      return res.status(400).json({ error: 'Missing required data' });
+    }
+
+    const { data, error } = await supabase
+      .from('questionnaire_responses')
+      .insert({
+        user_id: userId,
+        appointment_id: appointmentId,
+        type: 'PHQ-9',
+        responses,
+        total_score: totalScore
+      });
+
+    if (error) {
+      console.error('Insert PHQ9 error:', error);
+      return res.status(500).json({ error: 'Failed to save questionnaire' });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('PHQ9 endpoint error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Fetch all PHQ-9 data for a specific student
+router.get('/student-phq9/:studentId', verifyToken, async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    // Optional Check: Is the caller a counsellor who has an appointment with them?
+    if (req.user.userType !== 'counsellor' && req.user.userType !== 'admin') {
+      if (req.user.userId !== studentId && req.user.id !== studentId) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    const { data: qData, error } = await supabase
+      .from('questionnaire_responses')
+      .select('created_at, total_score, appointment_id')
+      .eq('user_id', studentId)
+      .eq('type', 'PHQ-9')
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Fetch PHQ9 error:', error);
+      return res.status(500).json({ error: 'Failed to fetch questionnaire data' });
+    }
+
+    res.json({ scores: qData || [] });
+  } catch (err) {
+    console.error('PHQ9 fetch error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 module.exports = router;
+

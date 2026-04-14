@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiUser, FiMail, FiBookOpen, FiClock, FiSmartphone, FiHash, FiCheckCircle, FiEdit3 } from 'react-icons/fi';
+import { FiUser, FiMail, FiBookOpen, FiClock, FiSmartphone, FiHash, FiCheckCircle, FiEdit3, FiTrendingUp } from 'react-icons/fi';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as LineTooltip, ResponsiveContainer } from 'recharts';
 import './Profile.css';
 
 const Profile = () => {
@@ -18,6 +19,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
+  const [phq9Trend, setPhq9Trend] = useState([]);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -32,6 +34,20 @@ const Profile = () => {
           department: response.data.profile.department || ''
         });
       }
+      
+      try {
+        const phqResponse = await api.get(`/appointments/student-phq9/${user.id}`);
+        if (phqResponse.data.scores) {
+          const formatted = phqResponse.data.scores.map(s => ({
+            date: new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            score: s.total_score
+          }));
+          setPhq9Trend(formatted);
+        }
+      } catch (e) {
+        console.error('No PHQ9 data', e);
+      }
+      
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {
@@ -113,6 +129,26 @@ const Profile = () => {
                   <span className="value">March 2026</span>
                 </div>
               </div>
+
+              {phq9Trend.length > 0 && (
+                <div className="stats-mini glass-card" style={{ marginTop: '1.5rem' }}>
+                  <h3 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <FiTrendingUp color="#3498db" /> Clinical Assessment Trend
+                  </h3>
+                  <div style={{ width: '100%', height: '180px' }}>
+                    <ResponsiveContainer>
+                      <LineChart data={phq9Trend}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
+                        <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                        <YAxis domain={[0, 27]} tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                        <LineTooltip contentStyle={{ background: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }} />
+                        <Line type="monotone" dataKey="score" stroke="#3498db" strokeWidth={3} dot={{ r: 4, fill: '#3498db' }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center', marginTop: '0.5rem' }}>PHQ-9 Total Score</p>
+                </div>
+              )}
             </div>
 
             <div className="profile-main">

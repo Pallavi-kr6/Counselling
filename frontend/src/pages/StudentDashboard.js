@@ -13,8 +13,10 @@ import {
   FiSunrise,
   FiMoon,
   FiActivity,
-  FiPlayCircle
+  FiPlayCircle,
+  FiTrendingUp
 } from 'react-icons/fi';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import './Dashboard.css';
 
 const StudentDashboard = () => {
@@ -25,6 +27,7 @@ const StudentDashboard = () => {
   const [upcomingAppointments, setUpcomingAppointments] = useState([]);
   const [moodStreak] = useState(3);
   const [hasMoodToday] = useState(false);
+  const [aiMoodLogs, setAiMoodLogs] = useState([]);
   
   const greeting = useCallback(() => {
     const hour = new Date().getHours();
@@ -47,6 +50,21 @@ const StudentDashboard = () => {
         .slice(0, 2);
 
       setUpcomingAppointments(upcoming);
+
+      // Fetch AI sentiment logs
+      try {
+        const moodResponse = await api.get('/mood/ai-logs-trend');
+        // map data for recharts
+        const formattedLogs = (moodResponse.data.logs || []).map(log => ({
+          date: new Date(log.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          score: log.score,
+          label: log.label
+        }));
+        setAiMoodLogs(formattedLogs);
+      } catch (err) {
+        console.error('Failed to load AI mood trend', err);
+      }
+
     } catch (err) {
       console.error('Error fetching student dashboard:', err);
     } finally {
@@ -217,6 +235,38 @@ const StudentDashboard = () => {
                 </button>
               </div>
             )}
+          </motion.div>
+
+          {/* AI Sentiment Trend Card */}
+          <motion.div className="dashboard-card glass-card" variants={itemVariants} style={{ padding: '2.5rem', gridColumn: 'span auto' }}>
+            <h3 style={{ marginBottom: '1.5rem', fontSize: '1.3rem', fontWeight: '600', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FiTrendingUp style={{ color: '#2ec4b6' }} /> Subconscious Sentiment
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
+              We analyze your conversation sentiment in the background to provide you with insights over time.
+            </p>
+
+            <div style={{ width: '100%', height: 250, background: 'rgba(255,255,255,0.4)', borderRadius: '1rem', padding: '1rem 0', border: '1px solid rgba(46,196,182,0.1)' }}>
+              {aiMoodLogs.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={aiMoodLogs} margin={{ top: 5, right: 30, left: -20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
+                    <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <YAxis domain={[1, 10]} ticks={[1, 3, 6, 10]} tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }} 
+                      labelStyle={{ color: 'var(--text-primary)', fontWeight: 'bold', marginBottom: '0.3rem' }}
+                    />
+                    <Line type="monotone" dataKey="score" stroke="#2ec4b6" strokeWidth={3} dot={{ r: 4, fill: '#2ec4b6', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex-center" style={{ height: '100%', flexDirection: 'column', color: 'var(--text-secondary)' }}>
+                  <FiHeart size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
+                  <p>Chat with our AI bot to generate sentiment insights.</p>
+                </div>
+              )}
+            </div>
           </motion.div>
 
         </div>

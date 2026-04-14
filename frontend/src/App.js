@@ -21,6 +21,8 @@ import Feedback from './pages/Feedback';
 import ProgressReports from './pages/ProgressReports';
 import CounsellorSessions from './pages/CounsellorSessions';
 import CounsellorStudentDetail from './pages/CounsellorStudentDetail';
+import AdminInsights from './pages/AdminInsights';
+import PHQ9Form from './pages/PHQ9Form';
 import Navbar from './components/Navbar';
 import './App.css';
 
@@ -139,6 +141,15 @@ function AnimatedRoutes() {
           }
         />
         <Route
+          path="/phq9/:appointmentId"
+          element={
+            <StudentOnlyRoute>
+              <Navbar />
+              <PageWrapper><PHQ9Form /></PageWrapper>
+            </StudentOnlyRoute>
+          }
+        />
+        <Route
           path="/session/:appointmentId"
           element={
             <PrivateRoute>
@@ -182,6 +193,15 @@ function AnimatedRoutes() {
             </CounsellorOnlyRoute>
           }
         />
+        <Route
+          path="/admin/insights"
+          element={
+            <AdminOnlyRoute>
+              <Navbar />
+              <PageWrapper><AdminInsights /></PageWrapper>
+            </AdminOnlyRoute>
+          }
+        />
       </Routes>
     </AnimatePresence>
   );
@@ -201,6 +221,14 @@ function CounsellorOnlyRoute({ children }) {
   if (loading) return <div className="loading">Loading...</div>;
   if (!user) return <Navigate to="/login" />;
   if (user.userType !== 'counsellor') return <Navigate to="/" />;
+  return children;
+}
+
+function AdminOnlyRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="loading">Loading...</div>;
+  if (!user) return <Navigate to="/login" />;
+  if (user.userType !== 'admin') return <Navigate to="/" />;
   return children;
 }
 
