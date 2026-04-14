@@ -1,0 +1,195 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@400;600;700&display=swap');
+
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/dist/OpenDyslexic-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+:root {
+  /* Colors - Emotionally Intelligent Palette (Calm & Safe) */
+  --primary: #2ebaa8;
+  --primary-dark: #239c8c;
+  --primary-light: #e6f7f6;
+  --secondary: #a78bfa; /* Soft lavender */
+  --secondary-light: #ede9fe;
+  --accent: #93c5fd; /* Pastel blue */
+  --bg-gradient: linear-gradient(145deg, #f8fafc 0%, #f0fdfa 50%, #f3f4f6 100%);
+  --sidebar-bg: rgba(255, 255, 255, 0.6);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.8);
+  --text-primary: #334155;
+  --text-secondary: #64748b;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  
+  /* Layout & Comfort */
+  --border-radius-lg: 2rem; /* Softer 2xl+ corners */
+  --border-radius-md: 1.25rem;
+  --transition-smooth: all 0.6s cubic-bezier(0.25, 1, 0.5, 1); /* Slower, breathable */
+  --shadow-soft: 0 10px 40px -10px rgba(46, 186, 168, 0.1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: font-family 0.6s ease;
+}
+
+[data-font='poppins'] body, [data-font='poppins'] * {
+  font-family: 'Poppins', sans-serif !important;
+}
+
+[data-font='opendyslexic'] body, [data-font='opendyslexic'] * {
+  font-family: 'OpenDyslexic', sans-serif !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Glassmorphism Utilities - Emotionally Safe & Soft */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-soft);
+  padding: 2.5rem; /* Spacious padding */
+}
+
+.glass-morphism {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: var(--border-radius-md);
+}
+
+/* Common Components */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.85rem 2rem;
+  border-radius: 100px; /* Pill-shaped */
+  font-weight: 600;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 4px 15px rgba(46, 186, 168, 0.2);
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(46, 186, 168, 0.3);
+}
+
+.btn-ghost {
+  background: rgba(46, 186, 168, 0.05);
+  color: var(--primary);
+  border: 1px solid transparent;
+}
+
+.btn-ghost:hover {
+  background: rgba(46, 186, 168, 0.1);
+  border-color: rgba(46, 186, 168, 0.2);
+}
+
+.btn-icon-only {
+  width: 45px;
+  height: 45px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.glass-input, .glass-textarea, .glass-select {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 16px;
+  color: var(--text-primary);
+  font-size: 1rem;
+  transition: var(--transition-smooth);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.glass-input:focus, .glass-textarea:focus, .glass-select:focus {
+  outline: none;
+  background: #ffffff;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 4px rgba(46, 186, 168, 0.1);
+}
+
+.loading-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100%;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--bg-gradient);
+}
+
+.loading-screen.immersive {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2000;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(46, 196, 182, 0.2);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Animations */
+@keyframes pulse {
+  0% { opacity: 0.6; transform: scale(0.98); }
+  50% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0.6; transform: scale(0.98); }
+}
+
+.pulse {
+  animation: pulse 2s infinite ease-in-out;
+}

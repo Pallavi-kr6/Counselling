@@ -1,0 +1,129 @@
+.feedback-page {
+  padding: 4rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 80px);
+}
+
+.mini-container {
+  max-width: 600px;
+  width: 100%;
+}
+
+.feedback-card {
+  padding: 3rem;
+  text-align: center;
+}
+
+.feedback-header { margin-bottom: 2.5rem; }
+.header-icon { 
+  font-size: 3rem; 
+  color: var(--primary); 
+  margin-bottom: 1rem;
+}
+
+.feedback-header h1 { font-size: 2.25rem; margin-bottom: 0.5rem; }
+.feedback-header p { color: var(--text-secondary); }
+
+.feedback-form-modern {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  text-align: left;
+}
+
+.section-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.rating-section { text-align: center; }
+.stars-container {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  font-size: 2.5rem;
+  color: var(--glass-border);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  padding: 0;
+}
+
+.star-btn.active { color: #FFB800; }
+
+.rating-label {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.anonymous-toggle {
+  display: flex;
+  justify-content: center;
+}
+
+.checkbox-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--glass-border);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.checkbox-pill:hover { background: rgba(255, 255, 255, 0.1); }
+
+.checkbox-pill input { display: none; }
+.checkmark {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--text-secondary);
+  border-radius: 4px;
+  position: relative;
+}
+
+.checkbox-pill input:checked + .checkmark {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.checkbox-pill input:checked + .checkmark::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 10px;
+}
+
+.feedback-actions {
+  display: flex;
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.feedback-success h2 {
+  color: #10b981;
+  margin-bottom: 16px;
+}
+
+.feedback-success p {
+  color: #666;
+}

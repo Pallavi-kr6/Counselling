@@ -1,0 +1,181 @@
+.profile-page {
+  padding: 2rem;
+  min-height: calc(100vh - 80px);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3rem;
+}
+
+.header-content h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+
+.success-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border-radius: 100px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 2.5rem;
+}
+
+.profile-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.avatar-card {
+  padding: 3rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.avatar-large {
+  width: 120px;
+  height: 120px;
+  background: var(--glass-border);
+  border-radius: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  color: var(--primary);
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.edit-avatar-btn {
+  position: absolute;
+  bottom: -10px;
+  right: -10px;
+  width: 40px;
+  height: 40px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(46, 196, 182, 0.3);
+}
+
+.avatar-card h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+.avatar-card p { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+.user-type-tag {
+  display: inline-block;
+  padding: 0.4rem 1rem;
+  background: var(--glass-border);
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--primary);
+}
+
+.stats-mini { padding: 1.5rem; }
+.stat-item { display: flex; justify-content: space-between; align-items: center; }
+.stat-item .label { color: var(--text-secondary); font-size: 0.85rem; }
+.stat-item .value { font-weight: 700; font-size: 0.95rem; }
+
+.profile-form { padding: 3rem; }
+
+.form-section { margin-bottom: 3rem; }
+.form-section h3 {
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--glass-border);
+  color: var(--primary);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.input-group-modern { display: flex; flex-direction: column; gap: 0.75rem; }
+.input-group-modern label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+}
+
+.input-group-modern label svg { color: var(--primary); }
+
+.input-group-modern input,
+.input-group-modern select {
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  transition: var(--transition-smooth);
+}
+
+.input-group-modern input:focus,
+.input-group-modern select:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.input-group-modern input.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.form-actions { margin-top: 4rem; display: flex; justify-content: flex-end; }
+
+.btn-save-profile {
+  padding: 1rem 3rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(46, 196, 182, 0.2);
+}
+
+@media (max-width: 1024px) {
+  .profile-grid { grid-template-columns: 1fr; }
+  .profile-sidebar { flex-direction: row; }
+  .avatar-card { flex: 1; }
+  .stats-mini { flex: 1; display: flex; align-items: center; }
+}
+
+@media (max-width: 768px) {
+  .profile-sidebar { flex-direction: column; }
+  .form-grid { grid-template-columns: 1fr; }
+  .profile-form { padding: 2rem; }
+  .page-header { flex-direction: column; align-items: flex-start; gap: 1.5rem; }
+}

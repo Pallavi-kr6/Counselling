@@ -1,0 +1,181 @@
+.progress-reports {
+  min-height: 100vh;
+  background: #f8f9fa;
+  padding: 20px 0;
+}
+
+.progress-reports .container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.progress-reports h1 {
+  color: #333;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.create-report-section {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+}
+
+.create-report-section h2 {
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.form-row {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  margin-bottom: 15px;
+  padding: 2rem;
+}
+
+.page-header-modern {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.page-header-modern h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+.page-header-modern p { color: var(--text-secondary); }
+
+.reports-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.create-report-hero {
+  padding: 3rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+}
+
+.hero-content h2 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+.hero-content p { color: var(--text-secondary); }
+
+.hero-form {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.reports-section .section-header {
+  margin-bottom: 1.5rem;
+}
+
+.reports-grid-modern {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  resize: vertical;
+  min-height: 80px;
+}
+
+.academic-row,
+.goal-row,
+.plan-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 2fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.goal-row {
+  grid-template-columns: 2fr 1fr 2fr auto;
+}
+
+.plan-row {
+  grid-template-columns: 2fr 2fr 1fr auto;
+}
+
+.academic-row input,
+.goal-row input,
+.goal-row select,
+.goal-row textarea,
+.plan-row input,
+.plan-row textarea {
+  width: 100%;
+}
+
+.checkbox-label {
+  display: block;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.checkbox-label input {
+  margin-right: 10px;
+}
+
+.signature-row {
+  display: flex;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.signature-row input {
+  flex: 1;
+}
+
+.form-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.btn-primary {
+  background: #667eea;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #5a6fd8;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #5a6268;
+}
+
+.btn-success {
+  background: #28a745;
+  color: white;
+}
+
+.btn-success:hover {
+  background: #218838;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 18px;
+  color: #666;
+}

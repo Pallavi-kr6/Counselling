@@ -1,0 +1,214 @@
+.video-session-immersive {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: #0a0f1a;
+  padding: 2rem;
+  overflow: hidden;
+}
+
+.immersive-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.immersive-header {
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.branding {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-weight: 700;
+  color: #10b981;
+}
+
+.secure-icon { font-size: 1.5rem; }
+
+.btn-leave {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  padding: 0.6rem 1.25rem;
+  border-radius: 100px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: var(--transition-smooth);
+}
+
+.btn-leave:hover { background: #ef4444; color: white; }
+
+.immersive-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 2rem;
+  min-height: 0;
+}
+
+.video-viewport {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.viewport-overlay {
+  z-index: 2;
+  padding: 3rem;
+  max-width: 600px;
+}
+
+.viewport-icon {
+  font-size: 5rem;
+  color: var(--primary);
+  margin-bottom: 2rem;
+}
+
+.viewport-overlay h2 { font-size: 2.5rem; margin-bottom: 1rem; }
+.viewport-overlay p { color: var(--text-secondary); margin-bottom: 2.5rem; font-size: 1.1rem; }
+
+.meeting-auth-pill {
+  display: inline-flex;
+  padding: 1rem 2rem;
+  border-radius: 100px;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+  font-family: monospace;
+  font-size: 1.1rem;
+}
+
+.meeting-auth-pill .divider { opacity: 0.3; }
+
+.btn-join-immersive {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 3rem;
+  background: var(--primary);
+  color: white;
+  text-decoration: none;
+  border-radius: 16px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  box-shadow: 0 10px 30px rgba(46, 196, 182, 0.4);
+}
+
+.viewport-bg-animation {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(46, 196, 182, 0.1) 0%, transparent 70%);
+  z-index: 1;
+}
+
+.immersive-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.sidebar-card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--primary);
+}
+
+.sidebar-card ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 1rem; color: var(--text-secondary); }
+.sidebar-card li { font-size: 0.9rem; line-height: 1.5; }
+
+.status-row { display: flex; align-items: center; gap: 1rem; font-weight: 700; font-size: 0.9rem; color: #10b981; }
+
+.pulse-dot {
+  width: 12px;
+  height: 12px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 15px #10b981;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+@media (max-width: 1024px) {
+  .immersive-content { grid-template-columns: 1fr; }
+  .immersive-sidebar { display: none; }
+}
+
+.control-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px;
+  background: #333;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.control-btn.active {
+  background: #667eea;
+}
+
+.control-btn:hover {
+  background: #444;
+}
+
+.control-btn.active:hover {
+  background: #5568d3;
+}
+
+.session-info {
+  background: #2a2a2a;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  color: #999;
+}
+
+.session-info p {
+  margin-bottom: 8px;
+}
+
+.session-error {
+  text-align: center;
+  padding: 60px 20px;
+  color: white;
+}
+
+.session-error h2 {
+  margin-bottom: 16px;
+}
+
+.session-error p {
+  margin-bottom: 24px;
+  color: #999;
+}
