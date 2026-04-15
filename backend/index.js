@@ -18,6 +18,7 @@ const PORT = process.env.PORT || 5001;
 
 // CORS — allow frontend Render URL + localhost
 const allowedOrigins = [
+  'https://counselling-1.onrender.com',
   'https://counselling-w1mh.onrender.com',
   'http://localhost:3000',
   'http://localhost:3001',
