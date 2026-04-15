@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import { isSameDay, subDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FiCalendar, 
@@ -25,9 +26,11 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   const [upcomingAppointments, setUpcomingAppointments] = useState([]);
-  const [moodStreak] = useState(3);
+  const [moodStreak, setMoodStreak] = useState(0);
   const [hasMoodToday] = useState(false);
   const [aiMoodLogs, setAiMoodLogs] = useState([]);
+  const [averageMoodScore, setAverageMoodScore] = useState(null);
+  const [moodInsight, setMoodInsight] = useState('');
   
   const greeting = useCallback(() => {
     const hour = new Date().getHours();
@@ -51,16 +54,66 @@ const StudentDashboard = () => {
 
       setUpcomingAppointments(upcoming);
 
+      // Fetch Mood Streak
+      try {
+        const streakRes = await api.get('/mood/streak-dates');
+        const datesStr = streakRes.data.dates || [];
+        
+        if (datesStr.length > 0) {
+          const dateObjects = datesStr.map(d => {
+            const [y, m, dNum] = d.split('-');
+            return new Date(parseInt(y), parseInt(m) - 1, parseInt(dNum));
+          });
+          dateObjects.sort((a, b) => b.getTime() - a.getTime());
+
+          let currentStreak = 0;
+          let today = new Date();
+          
+          let hasToday = dateObjects.some(d => isSameDay(d, today));
+          let checkDate = hasToday ? today : subDays(today, 1);
+          
+          while (true) {
+            const hasEntry = dateObjects.some(d => isSameDay(d, checkDate));
+            if (hasEntry) {
+              currentStreak++;
+              checkDate = subDays(checkDate, 1);
+            } else {
+              break;
+            }
+          }
+          setMoodStreak(currentStreak);
+        } else {
+          setMoodStreak(0);
+        }
+      } catch (err) {
+        console.error('Failed to load streak dates', err);
+      }
+
       // Fetch AI sentiment logs
       try {
         const moodResponse = await api.get('/mood/ai-logs-trend');
         // map data for recharts
-        const formattedLogs = (moodResponse.data.logs || []).map(log => ({
+        const rawLogs = moodResponse.data.logs || [];
+        const formattedLogs = rawLogs.map(log => ({
           date: new Date(log.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
           score: log.score,
           label: log.label
         }));
         setAiMoodLogs(formattedLogs);
+
+        const last5 = formattedLogs.slice(-5);
+        if (last5.length > 0) {
+          const avgScore = last5.reduce((sum, log) => sum + log.score, 0) / last5.length;
+          const roundedScore = avgScore.toFixed(1);
+          setAverageMoodScore(roundedScore);
+
+          try {
+            const insightResponse = await api.get(`/mood/insight?score=${roundedScore}`);
+            setMoodInsight(insightResponse.data.insight);
+          } catch (e) {
+            console.error('Failed to load insight', e);
+          }
+        }
       } catch (err) {
         console.error('Failed to load AI mood trend', err);
       }
@@ -246,27 +299,31 @@ const StudentDashboard = () => {
               We analyze your conversation sentiment in the background to provide you with insights over time.
             </p>
 
-            <div style={{ width: '100%', height: 250, background: 'rgba(255,255,255,0.4)', borderRadius: '1rem', padding: '1rem 0', border: '1px solid rgba(46,196,182,0.1)' }}>
-              {aiMoodLogs.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={aiMoodLogs} margin={{ top: 5, right: 30, left: -20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
-                    <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
-                    <YAxis domain={[1, 10]} ticks={[1, 3, 6, 10]} tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }} 
-                      labelStyle={{ color: 'var(--text-primary)', fontWeight: 'bold', marginBottom: '0.3rem' }}
-                    />
-                    <Line type="monotone" dataKey="score" stroke="#2ec4b6" strokeWidth={3} dot={{ r: 4, fill: '#2ec4b6', strokeWidth: 0 }} activeDot={{ r: 6 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex-center" style={{ height: '100%', flexDirection: 'column', color: 'var(--text-secondary)' }}>
-                  <FiHeart size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
-                  <p>Chat with our AI bot to generate sentiment insights.</p>
+            {aiMoodLogs.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', background: 'rgba(255,255,255,0.4)', borderRadius: '1rem', padding: '1.5rem', border: '1px solid rgba(46,196,182,0.1)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <span style={{ fontSize: '2.5rem', fontWeight: '700', color: '#2ec4b6', lineHeight: 1 }}>{averageMoodScore}</span>
+                    <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: '600', marginLeft: '4px' }}>/10 avg</span>
+                  </div>
+                  <div style={{ width: '120px', height: '40px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={aiMoodLogs.slice(-5)}>
+                        <Line type="monotone" dataKey="score" stroke="#2ec4b6" strokeWidth={2.5} dot={{ r: 3, fill: '#2ec4b6' }} isAnimationActive={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
-              )}
-            </div>
+                <p style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontStyle: 'italic', lineHeight: 1.5, background: 'var(--primary-light)', padding: '1rem', borderRadius: '0.75rem', margin: 0 }}>
+                  "{moodInsight || 'Analyzing your heartspace...'}"
+                </p>
+              </div>
+            ) : (
+              <div className="flex-center" style={{ height: '200px', flexDirection: 'column', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.4)', borderRadius: '1rem', border: '1px dashed rgba(46,196,182,0.3)' }}>
+                <FiHeart size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
+                <p>Chat with our AI bot to generate sentiment insights.</p>
+              </div>
+            )}
           </motion.div>
 
         </div>

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
 const { verifyToken } = require('./auth');
+const Anthropic = require('@anthropic-ai/sdk');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -201,6 +202,87 @@ router.get('/ai-logs-trend', verifyToken, async (req, res) => {
     res.json({ logs: moodLogs || [] });
   } catch (error) {
     console.error('Fetch AI mood logs error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get Claude AI generated micro-insight for average mood
+router.get('/insight', verifyToken, async (req, res) => {
+  try {
+    const { score } = req.query;
+    if (!score) return res.status(400).json({ error: 'Score is required' });
+
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY || 'empty',
+    });
+
+    try {
+      const response = await anthropic.messages.create({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 100,
+        messages: [{
+          role: 'user',
+          content: `In one gentle sentence, interpret an average mood score of ${score}/10 for a student`
+        }],
+      });
+      res.json({ insight: response.content[0].text });
+    } catch (apiError) {
+      console.error('Claude API Error:', apiError);
+      res.json({ insight: `Your average heartspace feeling is around ${score}/10.` });
+    }
+  } catch (error) {
+    console.error('Fetch mood insight error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get gentle insight based on recent moods sequence
+router.get('/gentle-insight', verifyToken, async (req, res) => {
+  try {
+    const { moods } = req.query;
+    if (!moods) return res.status(400).json({ error: 'Moods string is required' });
+
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY || 'empty',
+    });
+
+    try {
+      const response = await anthropic.messages.create({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 150,
+        messages: [{
+          role: 'user',
+          content: `A student's recent moods in order were: ${moods}. Write one warm, non-clinical sentence of encouragement that acknowledges what they've been feeling. Do not give advice. Max 25 words.`
+        }],
+      });
+      res.json({ insight: response.content[0].text });
+    } catch (apiError) {
+      console.error('Claude API gentle-insight Error:', apiError);
+      res.json({ insight: "You've been experiencing a mix of emotions lately, and we want you to know it's perfectly okay to feel exactly as you do." });
+    }
+  } catch (error) {
+    console.error('Fetch gentle insight error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get all check-in dates for streak calculation
+router.get('/streak-dates', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+    const { data, error } = await supabase
+      .from('mood_tracking')
+      .select('date')
+      .eq('user_id', userId)
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+
+    // Get unique dates
+    const dates = [...new Set(data.map(entry => entry.date))];
+    res.json({ dates });
+  } catch (error) {
+    console.error('Fetch streak dates error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

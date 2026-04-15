@@ -5,16 +5,16 @@ import { FiBook, FiVideo, FiHeadphones, FiSearch, FiExternalLink, FiWind, FiHear
 import './Resources.css';
 
 const SAMPLE_RESOURCES = [
-  { id: 1, title: '5-minute breathing reset', type: 'article', category: 'stress', description: 'Take a quick moment to center yourself and lower your heart rate gently.', url: '#' },
-  { id: 2, title: 'How to manage academic stress', type: 'article', category: 'focus', description: 'Practical, gentle steps to handle your workload without overwhelming yourself.', url: '#' },
-  { id: 3, title: 'Overthinking at night – simple techniques', type: 'article', category: 'sleep', description: 'Soothe your racing thoughts and prepare your mind for restful sleep.', url: '#' },
-  { id: 4, title: 'Burnout in students: signs & solutions', type: 'article', category: 'self-care', description: 'Recognize the signs of burnout and learn how to be kind to yourself as you recover.', url: '#' },
-  { id: 5, title: 'Guided breathing (2 min)', type: 'video', category: 'anxiety', description: 'Follow along with this gentle visual guide to slow your breathing.', url: '#' },
-  { id: 6, title: 'Calm your anxiety instantly', type: 'video', category: 'anxiety', description: 'A grounding exercise to help you find your footing when anxiety spikes.', url: '#' },
-  { id: 7, title: 'Focus music / study ambient', type: 'audio', category: 'focus', description: 'Gentle, non-distracting background sounds to help you concentrate.', url: '#' },
-  { id: 8, title: 'Daily reflection journal', type: 'toolkit', category: 'self-care', description: 'Printable prompts to help you untangle your daily thoughts.', url: '#' },
-  { id: 9, title: 'Mood tracking prompts', type: 'toolkit', category: 'self-care', description: 'Templates to gently observe your emotional landscape over time.', url: '#' },
-  { id: 10, title: 'Study planning template', type: 'toolkit', category: 'focus', description: 'Organize your academic tasks in a way that feels manageable.', url: '#' },
+  { id: 1, title: '5-minute breathing reset', type: 'video', category: 'stress', description: 'Take a quick moment to center yourself and lower your heart rate gently.', url: 'https://www.youtube.com/watch?v=nmFUDkj1Aq0' },
+  { id: 2, title: 'How to manage academic stress', type: 'article', category: 'focus', description: 'Practical, gentle steps to handle your workload without overwhelming yourself.', url: 'https://students.dartmouth.edu/wellness-center/wellness-mindfulness/relaxation-downloads/managing-academic-stress' },
+  { id: 3, title: 'Overthinking at night – simple techniques', type: 'article', category: 'sleep', description: 'Soothe your racing thoughts and prepare your mind for restful sleep.', url: 'https://www.sleepfoundation.org/sleep-hygiene/how-to-stop-overthinking-at-night' },
+  { id: 4, title: 'Burnout in students: signs & solutions', type: 'article', category: 'self-care', description: 'Recognize the signs of burnout and learn how to be kind to yourself as you recover.', url: 'https://www.apa.org/monitor/2022/10/beating-student-burnout' },
+  { id: 5, title: 'Guided breathing (2 min)', type: 'video', category: 'anxiety', description: 'Follow along with this gentle visual guide to slow your breathing.', url: 'https://www.youtube.com/watch?v=aNXKjGFUlMs' },
+  { id: 6, title: 'Calm your anxiety instantly', type: 'article', category: 'anxiety', description: 'A grounding exercise to help you find your footing when anxiety spikes.', url: 'https://www.urmc.rochester.edu/behavioral-health-partners/bhp-blog/april-2018/5-4-3-2-1-coping-technique-for-anxiety.aspx' },
+  { id: 7, title: 'Focus music / study ambient', type: 'audio', category: 'focus', description: 'Gentle, non-distracting background sounds to help you concentrate.', url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk' },
+  { id: 8, title: 'Daily reflection writing', type: 'toolkit', category: 'self-care', description: 'Prompts to help you untangle your daily thoughts through expressive writing.', url: 'https://ggia.berkeley.edu/practice/expressive_writing' },
+  { id: 9, title: 'Mood tracking patterns', type: 'toolkit', category: 'self-care', description: 'Tools and templates to gently observe your emotional landscape over time.', url: 'https://www.mind.org.uk/information-support/tips-for-everyday-living/wellbeing/wellbeing-tools/' },
+  { id: 10, title: 'Study planning template', type: 'toolkit', category: 'focus', description: 'Organize your academic tasks in a way that feels manageable.', url: 'https://www.notion.so/templates/student-dashboard' },
   { id: 11, title: 'Counsellor Contact', type: 'support', category: 'campus', description: 'Direct contact details for your university counselling center.', url: '/book-appointment' },
   { id: 12, title: 'Helpline Numbers', type: 'support', category: 'campus', description: 'National and local 24/7 mental health crisis lines.', url: '/emergency' },
   { id: 13, title: 'Emergency Support Options', type: 'support', category: 'campus', description: 'Immediate safety resources for when you need help right away.', url: '/emergency' }

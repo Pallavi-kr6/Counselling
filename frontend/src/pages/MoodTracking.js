@@ -2,18 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
 import { motion } from 'framer-motion';
-import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-} from 'chart.js';
+import { LineChart, Line as RechartsLine, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, Dot } from 'recharts';
 import { 
   FiSmile, 
   FiWind, 
@@ -26,16 +15,7 @@ import {
 } from 'react-icons/fi';
 import './MoodTracking.css';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+
 
 const MoodTracking = () => {
   const [mood, setMood] = useState(5);
@@ -44,15 +24,18 @@ const MoodTracking = () => {
   const [notes, setNotes] = useState('');
   const [emoji, setEmoji] = useState('😐');
   const [history, setHistory] = useState([]);
+  const [activeTab, setActiveTab] = useState('check-in');
+  const [searchQuery, setSearchQuery] = useState('');
   const [stats, setStats] = useState(null);
+  const [gentleInsight, setGentleInsight] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const emojis = [
-    { icon: '😢', label: 'Struggling', val: 2 },
-    { icon: '😔', label: 'Down', val: 4 },
-    { icon: '😐', label: 'Okay', val: 6 },
-    { icon: '🙂', label: 'Good', val: 8 },
-    { icon: '😊', label: 'Great', val: 10 }
+    { icon: '😢', label: 'Struggling', val: 1 },
+    { icon: '😔', label: 'Down', val: 3 },
+    { icon: '😐', label: 'Okay', val: 5 },
+    { icon: '🙂', label: 'Good', val: 7 },
+    { icon: '😊', label: 'Great', val: 9 }
   ];
 
   const stressOptions = [
@@ -71,6 +54,50 @@ const MoodTracking = () => {
     fetchMoodHistory();
     fetchDashboard();
   }, []);
+
+  useEffect(() => {
+    if (history.length > 0 && !gentleInsight) {
+      loadGentleInsight();
+    }
+  }, [history]);
+
+  const loadGentleInsight = async () => {
+    const cachedData = localStorage.getItem('gentleInsightCache');
+    const now = Date.now();
+    const recent = history.slice(0, 5).reverse();
+    const recentEmojis = recent.map(e => e.emoji).join(', ');
+
+    if (cachedData) {
+      const { insight, timestamp, moodsList } = JSON.parse(cachedData);
+      if (now - timestamp < 6 * 60 * 60 * 1000 && moodsList === recentEmojis) {
+        setGentleInsight(insight);
+        return;
+      }
+    }
+
+    if (recent.length === 0) return;
+
+    const emojiMap = {
+      '😢': 'Struggling', '😔': 'Down', '😐': 'Okay', '🙂': 'Good', '😊': 'Great'
+    };
+    
+    const moodsStr = recent.map(e => emojiMap[e.emoji] || e.emoji).join(', ');
+
+    try {
+      const response = await api.get(`/mood/gentle-insight?moods=${encodeURIComponent(moodsStr)}`);
+      const newInsight = response.data.insight;
+      setGentleInsight(newInsight);
+      
+      localStorage.setItem('gentleInsightCache', JSON.stringify({
+        insight: newInsight,
+        timestamp: now,
+        moodsList: recentEmojis
+      }));
+    } catch (error) {
+      console.error('Error fetching gentle insight:', error);
+      setGentleInsight("It looks like you've been navigating a mix of feelings. Be gentle with yourself today.");
+    }
+  };
 
   const fetchMoodHistory = async () => {
     try {
@@ -107,46 +134,41 @@ const MoodTracking = () => {
     }
   };
 
-  const chartData = {
-    labels: history.slice(0, 7).reverse().map(entry => 
-      new Date(entry.date).toLocaleDateString('en-US', { weekday: 'short' })
-    ),
-    datasets: [
-      {
-        label: 'Heartspace',
-        data: history.slice(0, 7).reverse().map(entry => entry.mood),
-        borderColor: '#2ebaa8',
-        backgroundColor: 'rgba(46, 186, 168, 0.1)',
-        fill: true,
-        tension: 0.5,
-        pointBackgroundColor: '#2ebaa8',
-        borderWidth: 3
-      }
-    ]
+  const emojiToScore = {
+    '😢': 1,
+    '😔': 3,
+    '😐': 5,
+    '🙂': 7,
+    '😊': 9
   };
 
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        mode: 'index',
-        intersect: false,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        titleColor: '#334155',
-        bodyColor: '#334155',
-        borderColor: 'rgba(46, 186, 168, 0.2)',
-        borderWidth: 1,
-        padding: 12,
-        cornerRadius: 12
-      }
-    },
-    scales: {
-      y: { display: false, min: 0, max: 10 },
-      x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { family: 'inherit' } } }
-    }
+  const rechartsData = history.slice(0, 7).reverse().map(entry => ({
+    date: new Date(entry.date).toLocaleDateString('en-US', { weekday: 'short' }),
+    score: emojiToScore[entry.emoji] || parseInt(entry.mood) || 5,
+    emoji: entry.emoji || '😐'
+  }));
+
+  const CustomDot = (props) => {
+    const { cx, cy, payload } = props;
+    if (!cx || !cy) return null;
+    return (
+      <text x={cx} y={cy - 10} fill="#666" fontSize="16" textAnchor="middle">
+        {payload.emoji}
+      </text>
+    );
   };
+
+  const getMoodColor = (moodVal) => {
+    const val = parseInt(moodVal);
+    if (val <= 3) return '#ef4444'; // Red
+    if (val <= 5) return '#f59e0b'; // Orange
+    if (val <= 7) return '#3b82f6'; // Blue
+    return '#1D9E75'; // Teal
+  };
+
+  const filteredJournal = history.filter(entry => 
+    entry.notes && entry.notes.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
@@ -171,7 +193,27 @@ const MoodTracking = () => {
 
         <div className="mood-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: '2.5rem' }}>
           <motion.div className="mood-card-main glass-card" variants={itemVariants} style={{ padding: '3rem 2.5rem' }}>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+            <div style={{ display: 'flex', gap: '2rem', marginBottom: '2rem', borderBottom: '2px solid rgba(0,0,0,0.05)', paddingBottom: '1rem' }}>
+              <button 
+                type="button"
+                onClick={() => setActiveTab('check-in')}
+                style={{ background: 'none', border: 'none', fontSize: '1.25rem', fontWeight: activeTab === 'check-in' ? '700' : '500', color: activeTab === 'check-in' ? 'var(--primary-dark)' : 'var(--text-secondary)', cursor: 'pointer', position: 'relative' }}
+              >
+                Daily Check-in
+                {activeTab === 'check-in' && <div style={{ position: 'absolute', bottom: '-18px', left: 0, right: 0, height: '4px', background: 'var(--primary)', borderRadius: '4px' }} />}
+              </button>
+              <button 
+                type="button"
+                onClick={() => setActiveTab('journal')}
+                style={{ background: 'none', border: 'none', fontSize: '1.25rem', fontWeight: activeTab === 'journal' ? '700' : '500', color: activeTab === 'journal' ? 'var(--primary-dark)' : 'var(--text-secondary)', cursor: 'pointer', position: 'relative' }}
+              >
+                Journal
+                {activeTab === 'journal' && <div style={{ position: 'absolute', bottom: '-18px', left: 0, right: 0, height: '4px', background: 'var(--primary)', borderRadius: '4px' }} />}
+              </button>
+            </div>
+
+            {activeTab === 'check-in' ? (
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
               
               <div>
                 <label style={{ display: 'block', fontSize: '1.1rem', fontWeight: '500', color: 'var(--text-primary)', marginBottom: '1rem', textAlign: 'center' }}>
@@ -295,6 +337,40 @@ const MoodTracking = () => {
                 {submitting ? 'Holding space...' : 'Save this moment'}
               </button>
             </form>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Search your journal..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{ width: '100%', padding: '1rem 1.5rem', borderRadius: '100px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.8)', fontSize: '1rem', outline: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '600px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                  {filteredJournal.length > 0 ? filteredJournal.map(entry => (
+                    <div key={entry.id} style={{ display: 'flex', gap: '1.25rem', padding: '1.5rem', background: 'rgba(255,255,255,0.7)', borderRadius: '1rem', borderTopRightRadius: '1rem', borderBottomRightRadius: '1rem', borderLeft: `6px solid ${getMoodColor(entry.mood)}`, boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+                      <div style={{ fontSize: '2.5rem', display: 'flex', alignItems: 'center' }}>
+                        {entry.emoji}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          {new Date(entry.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                        </span>
+                        <p style={{ marginTop: '0.5rem', color: 'var(--text-primary)', lineHeight: '1.6', fontSize: '1.05rem' }}>
+                          {entry.notes}
+                        </p>
+                      </div>
+                    </div>
+                  )) : (
+                    <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+                      No journal entries found. Begin writing your journey in the check-in tab! 💛
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </motion.div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -304,8 +380,8 @@ const MoodTracking = () => {
                 <FiHeart size={24} style={{ color: 'var(--primary-dark)' }} />
                 <h3 style={{ fontSize: '1.2rem', color: 'var(--primary-dark)' }}>Gentle Insight</h3>
               </div>
-              <p style={{ fontSize: '1.1rem', color: 'var(--text-primary)', lineHeight: '1.6', marginBottom: '1rem' }}>
-                {stats?.trend === 'improving' ? "You've been feeling better this week 💛 Keep embracing these small moments of peace." : "It looks like things have been heavy lately. Please remember to be kind to yourself. 🌿"}
+              <p style={{ fontSize: '1.1rem', color: 'var(--text-primary)', lineHeight: '1.6', fontStyle: 'italic', marginBottom: '1rem' }}>
+                "{gentleInsight || 'Gently analyzing your heartspace...'}"
               </p>
               <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
                 Your average feeling is resting around {stats?.averageMood || 'okay'}/10. 
@@ -349,10 +425,29 @@ const MoodTracking = () => {
           <motion.div className="chart-card-full glass-card" variants={itemVariants} style={{ marginTop: '2.5rem', padding: '2.5rem' }}>
             <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <FiActivity style={{ color: 'var(--primary)', fontSize: '1.5rem' }} />
-              <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)' }}>Your Heartspace Over Time</h2>
+              <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)' }}>Your mood this week</h2>
             </div>
             <div style={{ height: '300px', width: '100%' }}>
-              <Line data={chartData} options={chartOptions} />
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={rechartsData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 13 }} dy={10} />
+                  <YAxis domain={[1, 10]} ticks={[1, 3, 5, 7, 9]} axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 13 }} dx={-10} />
+                  <RechartsTooltip 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}
+                    itemStyle={{ color: '#1D9E75', fontWeight: 'bold' }}
+                    formatter={(value) => [`Score: ${value}`, 'Mood']}
+                  />
+                  <RechartsLine 
+                    type="monotone" 
+                    dataKey="score" 
+                    stroke="#1D9E75" 
+                    strokeWidth={3}
+                    dot={<CustomDot />}
+                    activeDot={{ r: 6, fill: '#1D9E75', stroke: '#fff', strokeWidth: 2 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </motion.div>
         )}
