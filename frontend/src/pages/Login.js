@@ -37,12 +37,6 @@ const Login = () => {
         return;
       }
 
-      await supabase.from('users').upsert({
-        id: data.user.id,
-        email: data.user.email,
-        user_type: 'student'
-      });
-
       await api.get('/auth/me', {
         headers: {
           Authorization: `Bearer ${data.session.access_token}`

@@ -18,7 +18,8 @@
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^6.10.1",
     "openai": "^6.33.0",
-    "pdfkit": "^0.13.0"
+    "pdfkit": "^0.13.0",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

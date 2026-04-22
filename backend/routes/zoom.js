@@ -159,7 +159,10 @@ router.post('/create-meeting/:appointmentId', verifyToken, async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
 
     res.json({
       meeting,

@@ -27,7 +27,10 @@ router.get('/', verifyToken, async (req, res) => {
 
     const { data, error } = await query;
 
-    if (error) throw error;
+     if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
 
     res.json({ resources: data || [] });
   } catch (error) {
@@ -45,7 +48,10 @@ router.get('/:id', verifyToken, async (req, res) => {
       .eq('id', req.params.id)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ error: error.message });
+    }
 
     res.json({ resource: data });
   } catch (error) {
@@ -82,7 +88,10 @@ router.post('/', verifyToken, async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
 
     res.json({ resource: data });
   } catch (error) {
@@ -101,7 +110,10 @@ router.post('/:id/view', verifyToken, async (req, res) => {
         resource_id: req.params.id
       });
 
-    if (error) throw error;
+     if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
 
     res.json({ success: true });
   } catch (error) {

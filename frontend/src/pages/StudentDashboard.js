@@ -3,21 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { isSameDay, subDays } from 'date-fns';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   FiCalendar, 
   FiHeart, 
   FiBook, 
-  FiPhone, 
   FiArrowRight, 
   FiWind,
   FiSunrise,
   FiMoon,
   FiActivity,
   FiPlayCircle,
-  FiTrendingUp
+  FiTrendingUp,
+  FiCheckCircle,
+  FiXCircle
 } from 'react-icons/fi';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import './Dashboard.css';
 
 const StudentDashboard = () => {
@@ -31,6 +32,9 @@ const StudentDashboard = () => {
   const [aiMoodLogs, setAiMoodLogs] = useState([]);
   const [averageMoodScore, setAverageMoodScore] = useState(null);
   const [moodInsight, setMoodInsight] = useState('');
+  const [pendingReassignmentNotification, setPendingReassignmentNotification] = useState(null);
+  const [reassignmentLoading, setReassignmentLoading] = useState(false);
+  const [reassignmentMessage, setReassignmentMessage] = useState('');
   
   const greeting = useCallback(() => {
     const hour = new Date().getHours();
@@ -47,7 +51,8 @@ const StudentDashboard = () => {
       const upcoming = appointments
         .filter(apt => {
           const aptDate = new Date(`${apt.date}T${apt.start_time}`);
-          return aptDate > new Date() && apt.status !== 'cancelled' && apt.status !== 'completed';
+          return aptDate > new Date()
+            && !['cancelled', 'completed', 'pending_reassign'].includes(apt.status);
         })
         .sort((a, b) => new Date(a.date + 'T' + a.start_time) - new Date(b.date + 'T' + b.start_time))
         .slice(0, 2);
@@ -130,6 +135,53 @@ const StudentDashboard = () => {
     fetchStudentDashboard();
   }, [user, fetchStudentDashboard]);
 
+  const fetchPendingReassignment = useCallback(async () => {
+    try {
+      const response = await api.get('/sessions/user/action-required');
+      const notification = (response.data.data || []).find(
+        (item) => ['student_reassignment_approval', 'student_confirmation_pending'].includes(item.notification_type)
+      );
+      setPendingReassignmentNotification(notification || null);
+    } catch (error) {
+      console.error('Error loading reassignment prompt:', error);
+    }
+  }, []);
+
+  const handleReassignmentResponse = async (response) => {
+    if (!pendingReassignmentNotification?.session_id || reassignmentLoading) return;
+
+    setReassignmentLoading(true);
+    setReassignmentMessage('');
+
+    try {
+      await api.post(`/sessions/${pendingReassignmentNotification.session_id}/student-response`, {
+        response
+      });
+      await api.post(`/sessions/notification/${pendingReassignmentNotification.id}/read`).catch(() => {});
+
+      setPendingReassignmentNotification(null);
+      setReassignmentMessage(
+        response === 'accept'
+          ? 'Session accepted. Your meeting has been reassigned at the same time.'
+          : 'Request rejected. No meeting has been scheduled.'
+      );
+      fetchStudentDashboard();
+      fetchPendingReassignment();
+    } catch (error) {
+      setReassignmentMessage(error.response?.data?.error || 'Unable to update the reassignment request.');
+    } finally {
+      setReassignmentLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!user?.id || user.userType !== 'student') return undefined;
+
+    fetchPendingReassignment();
+    const interval = setInterval(fetchPendingReassignment, 10000);
+    return () => clearInterval(interval);
+  }, [user, fetchPendingReassignment]);
+
   if (loading) return (
     <div className="flex-center" style={{ height: '80vh' }}>
       <motion.div 
@@ -158,12 +210,13 @@ const StudentDashboard = () => {
   const TimeIcon = greeting().icon;
 
   return (
-    <motion.div 
-      className="dashboard"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
+    <>
+      <motion.div 
+        className="dashboard"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
       <div className="container" style={{ maxWidth: '1000px', paddingBottom: '4rem' }}>
         <header className="dashboard-header" style={{ textAlign: 'center', marginTop: '3rem', paddingBottom: '2rem' }}>
           <motion.div variants={itemVariants} style={{ display: 'inline-block', padding: '0.75rem', borderRadius: '50%', background: 'var(--primary-light)', color: 'var(--primary)', marginBottom: '1rem' }}>
@@ -193,6 +246,92 @@ const StudentDashboard = () => {
             </div>
           </div>
         </motion.div>
+
+        {pendingReassignmentNotification && (
+          <motion.div
+            className="glass-card"
+            variants={itemVariants}
+            style={{
+              marginBottom: '2rem',
+              padding: '2rem',
+              border: '1px solid rgba(245, 158, 11, 0.25)',
+              background: 'linear-gradient(135deg, rgba(255, 247, 237, 0.95), rgba(255, 255, 255, 0.92))'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ maxWidth: '620px' }}>
+                <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700', color: '#c2410c' }}>
+                  Reschedule Approval Needed
+                </p>
+                <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '1.4rem', color: 'var(--text-primary)' }}>
+                  Your counsellor cancelled, but {pendingReassignmentNotification.data?.counsellor_name || 'another counsellor'} is available.
+                </h3>
+                <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                  Do you want to continue the session on{' '}
+                  {pendingReassignmentNotification.data?.date && new Date(pendingReassignmentNotification.data.date).toLocaleDateString()}{' '}
+                  from {pendingReassignmentNotification.data?.start_time} to {pendingReassignmentNotification.data?.end_time} with{' '}
+                  {pendingReassignmentNotification.data?.counsellor_name || 'the available counsellor'}?
+                </p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => handleReassignmentResponse('reject')}
+                  disabled={reassignmentLoading}
+                  style={{
+                    padding: '0.9rem 1.4rem',
+                    borderRadius: '999px',
+                    border: '1px solid rgba(220, 38, 38, 0.2)',
+                    background: '#fff1f2',
+                    color: '#b91c1c',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <FiXCircle /> Reject
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleReassignmentResponse('accept')}
+                  disabled={reassignmentLoading}
+                  style={{
+                    padding: '0.9rem 1.4rem',
+                    borderRadius: '999px',
+                    border: 'none',
+                    background: 'var(--primary)',
+                    color: '#fff',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <FiCheckCircle /> {reassignmentLoading ? 'Saving...' : 'Accept'}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {reassignmentMessage && (
+          <motion.div
+            variants={itemVariants}
+            style={{
+              marginBottom: '2rem',
+              padding: '1rem 1.25rem',
+              borderRadius: '1rem',
+              background: 'rgba(255,255,255,0.85)',
+              border: '1px solid rgba(46,186,168,0.15)',
+              color: 'var(--text-primary)'
+            }}
+          >
+            {reassignmentMessage}
+          </motion.div>
+        )}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
           
@@ -328,7 +467,9 @@ const StudentDashboard = () => {
 
         </div>
       </div>
-    </motion.div>
+      </motion.div>
+
+    </>
   );
 };
 

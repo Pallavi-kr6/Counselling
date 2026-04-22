@@ -58,7 +58,10 @@ router.post('/', verifyToken, async (req, res) => {
         .select()
         .single();
 
-      if (error) throw error;
+       if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
       result = data;
     } else {
       // Create new feedback
@@ -75,7 +78,10 @@ router.post('/', verifyToken, async (req, res) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error(error);
+        return res.status(500).json({ error: error.message });
+      }
       result = data;
     }
 
@@ -102,7 +108,10 @@ router.get('/counsellor/:counsellorId', verifyToken, async (req, res) => {
       .eq('counsellor_id', req.params.counsellorId)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
 
     // Calculate average rating
     const ratings = data?.map(f => f.rating) || [];

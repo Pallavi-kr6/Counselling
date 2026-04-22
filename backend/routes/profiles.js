@@ -8,6 +8,11 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+function getCounsellorAvailabilityKeys(profile) {
+  if (!profile) return [];
+  return [...new Set([profile.id, profile.user_id].filter(Boolean))];
+}
+
 // Get student profile
 router.get('/student/:id', verifyToken, async (req, res) => {
   try {
@@ -59,8 +64,10 @@ router.post('/student', verifyToken, async (req, res) => {
         .eq('user_id', req.user.userId)
         .select()
         .single();
-
-      if (error) throw error;
+ if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
       result = data;
     } else {
       // Create new profile
@@ -70,7 +77,10 @@ router.post('/student', verifyToken, async (req, res) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error(error);
+        return res.status(500).json({ error: error.message });
+      }
       result = data;
     }
 
@@ -138,7 +148,10 @@ router.post('/counsellor', verifyToken, async (req, res) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
       result = data;
     } else {
       // Create new profile
@@ -148,7 +161,10 @@ router.post('/counsellor', verifyToken, async (req, res) => {
         .select()
         .single();
 
-      if (error) throw error;
+       if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
       result = data;
     }
 
@@ -199,14 +215,14 @@ router.get('/counsellors', verifyToken, async (req, res) => {
       console.log('Filtered counsellors:', filteredCounsellors?.map(c => ({ name: c.name, dept: c.department })));
     }
 
-    // Get availability for each counsellor
-    // IMPORTANT: counsellor_availability.counsellor_id references counsellor_profiles.id (profile PK), NOT user_id
+    // Get availability for each counsellor. Some databases store
+    // counsellor_availability.counsellor_id as profile.id, others as user_id.
     const counsellorsWithAvailability = await Promise.all(
       filteredCounsellors.map(async (counsellor) => {
         const { data: availability } = await supabase
           .from('counsellor_availability')
           .select('*')
-          .eq('counsellor_id', counsellor.id); // Use profile id (c.id), not user_id
+          .in('counsellor_id', getCounsellorAvailabilityKeys(counsellor));
 
         // Counsellor is available only if they have at least one availability slot marked as available
         // If no availability records exist or all are marked as unavailable, counsellor is unavailable
@@ -231,9 +247,8 @@ router.get('/counsellor/availability/:userId', verifyToken, async (req, res) => 
   try {
     const userId = req.params.userId;
 
-    // In the current DB, counsellor_availability.counsellor_id references
-    // counsellor_profiles.id (profile PK), while the API is called with
-    // the auth user id. First resolve user id -> profile id.
+    // Resolve the public user id to the profile row, then accept either
+    // profile.id or user_id in availability rows.
     const { data: profile, error: profileError } = await supabase
       .from('counsellor_profiles')
       .select('id, user_id')
@@ -251,10 +266,13 @@ router.get('/counsellor/availability/:userId', verifyToken, async (req, res) => 
     const { data, error } = await supabase
       .from('counsellor_availability')
       .select('*')
-      .eq('counsellor_id', profile.id)
+      .in('counsellor_id', getCounsellorAvailabilityKeys(profile))
       .order('day_order_id');
 
-    if (error) throw error;
+  if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
 
     res.json({ availability: data || [] });
   } catch (error) {
@@ -269,7 +287,8 @@ router.put('/counsellor/availability/:userId/toggle', verifyToken, async (req, r
     const userId = req.params.userId;
     const { isAvailable } = req.body;
 
-    // Resolve user id -> profile id to match counsellor_availability FK
+    // Resolve the user id to the profile row, then update both supported
+    // counsellor identifier styles in availability rows.
     const { data: profile, error: profileError } = await supabase
       .from('counsellor_profiles')
       .select('id, user_id')
@@ -287,10 +306,13 @@ router.put('/counsellor/availability/:userId/toggle', verifyToken, async (req, r
     const { data, error } = await supabase
       .from('counsellor_availability')
       .update({ is_available: isAvailable })
-      .eq('counsellor_id', profile.id)
+      .in('counsellor_id', getCounsellorAvailabilityKeys(profile))
       .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ error: error.message });
+    }
 
     res.json({ availability: data || [] });
   } catch (error) {

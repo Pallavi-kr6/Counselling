@@ -45,6 +45,7 @@ const supabase = createClient(
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/profiles', require('./routes/profiles'));
 app.use('/api/appointments', require('./routes/appointments'));
+app.use('/api/sessions', require('./routes/sessions'));
 app.use('/api/mood', require('./routes/mood'));
 app.use('/api/resources', require('./routes/resources'));
 app.use('/api/feedback', require('./routes/feedback'));

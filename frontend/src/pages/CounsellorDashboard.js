@@ -14,6 +14,8 @@ import {
   FiPower
 } from 'react-icons/fi';
 import './Dashboard.css';
+import CancelSessionModal from '../components/CancelSessionModal';
+import NotificationCenter from '../components/NotificationCenter';
 
 const CounsellorDashboard = () => {
   const { user } = useAuth();
@@ -24,6 +26,7 @@ const CounsellorDashboard = () => {
   const [counsellorAvailability, setCounsellorAvailability] = useState([]);
   const [isAvailable, setIsAvailable] = useState(true);
   const [completingId, setCompletingId] = useState(null);
+  const [sessionToCancel, setSessionToCancel] = useState(null);
 
   const fetchCounsellorDashboard = useCallback(async () => {
     try {
@@ -31,7 +34,7 @@ const CounsellorDashboard = () => {
       const allAppointments = apptResponse.data.appointments || [];
       setCounsellorAppointments(allAppointments);
       setUpcomingAppointments(allAppointments
-        .filter(apt => apt.status !== 'completed' && apt.status !== 'cancelled')
+        .filter(apt => !['completed', 'cancelled', 'pending_reassign'].includes(apt.status))
         .sort((a, b) => new Date(a.date + 'T' + a.start_time) - new Date(b.date + 'T' + b.start_time)));
 
       const availResponse = await api.get('/profiles/counsellor/availability/' + user.id);
@@ -70,6 +73,11 @@ const CounsellorDashboard = () => {
     } finally {
       setCompletingId(null);
     }
+  };
+
+  const handleCancelSuccess = () => {
+    setSessionToCancel(null);
+    fetchCounsellorDashboard();
   };
 
   const containerVariants = {
@@ -136,6 +144,14 @@ const CounsellorDashboard = () => {
                           <button className="btn-complete" onClick={() => completeSession(apt.id)} disabled={completingId === apt.id}>
                             {completingId === apt.id ? 'Checking...' : 'Complete'}
                           </button>
+                          <button
+                            type="button"
+                            className="btn-complete"
+                            style={{ background: '#fee2e2', color: '#991b1b' }}
+                            onClick={() => setSessionToCancel(apt)}
+                          >
+                            Cancel
+                          </button>
                           <button className="btn-link" onClick={() => navigate(`/session/${apt.id}`)}>
                             <FiExternalLink />
                           </button>
@@ -178,9 +194,21 @@ const CounsellorDashboard = () => {
                 ))}
               </div>
             </motion.div>
+
+            <motion.div className="dashboard-card-modern glass-card" variants={cardVariants}>
+              <div className="card-header-modern"><h2>Reassignment Requests</h2></div>
+              <NotificationCenter />
+            </motion.div>
           </aside>
         </div>
       </div>
+
+      <CancelSessionModal
+        isOpen={Boolean(sessionToCancel)}
+        session={sessionToCancel}
+        onClose={() => setSessionToCancel(null)}
+        onSuccess={handleCancelSuccess}
+      />
     </motion.div>
   );
 };

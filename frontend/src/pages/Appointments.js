@@ -48,10 +48,10 @@ const Appointments = () => {
   };
 
   const filteredAppointments = appointments.filter(apt => {
-    const aptDate = new Date(`${apt.date}T${apt.start_time}`);
-    const now = new Date();
-    switch (filter) {
-      case 'upcoming': return aptDate > now && apt.status !== 'cancelled' && apt.status !== 'completed';
+      const aptDate = new Date(`${apt.date}T${apt.start_time}`);
+      const now = new Date();
+      switch (filter) {
+      case 'upcoming': return aptDate > now && !['cancelled', 'completed', 'pending_reassign'].includes(apt.status);
       case 'past': return aptDate < now || apt.status === 'completed';
       case 'cancelled': return apt.status === 'cancelled';
       default: return true;

@@ -1,0 +1,268 @@
+/**
+ * StudentConfirmationModal.css
+ * Styles for student confirmation modal
+ */
+
+.student-confirmation-modal {
+  /* Extends .modal-content styles */
+}
+
+.info-box {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.info-icon {
+  font-size: 24px;
+  color: #d97706;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.info-content {
+  flex: 1;
+}
+
+.info-title {
+  margin: 0 0 6px 0;
+  font-weight: 600;
+  color: #92400e;
+  font-size: 14px;
+}
+
+.info-text {
+  margin: 0;
+  font-size: 13px;
+  color: #b45309;
+  line-height: 1.4;
+}
+
+.counsellor-info {
+  background: #f3f4f6;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.counsellor-info h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-row .label {
+  font-weight: 500;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.info-row .value {
+  color: #1f2937;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.quick-actions {
+  margin-bottom: 24px;
+}
+
+.action-prompt {
+  margin: 0 0 16px 0;
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
+  flex-direction: column-reverse;
+}
+
+.btn {
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #667eea;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #5568d3;
+}
+
+.btn-secondary {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #d1d5db;
+}
+
+.btn-warning {
+  background: #f59e0b;
+  color: white;
+}
+
+.btn-warning:hover:not(:disabled) {
+  background: #d97706;
+}
+
+.reason-form {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.reason-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.reason-form textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 80px;
+  margin-bottom: 8px;
+  transition: border-color 0.2s;
+}
+
+.reason-form textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.reason-form textarea:disabled {
+  background: #f3f4f6;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.char-count {
+  display: block;
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: right;
+  margin-bottom: 12px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.form-actions .btn {
+  padding: 10px 16px;
+  font-size: 13px;
+}
+
+.result-container {
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.result-icon {
+  font-size: 60px;
+  margin-bottom: 16px;
+}
+
+.result-icon.confirmed {
+  color: #22c55e;
+}
+
+.result-icon.rejected {
+  color: #f59e0b;
+}
+
+.result-container h3 {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.result-message {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.alert-error {
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-top: 16px;
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .button-group {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+  }
+
+  .info-box {
+    flex-direction: column;
+  }
+
+  .info-icon {
+    order: -1;
+  }
+}

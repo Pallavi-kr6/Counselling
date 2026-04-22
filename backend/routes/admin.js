@@ -45,7 +45,7 @@ router.get('/insights', verifyToken, requireAdmin, async (req, res) => {
 
     // 2) Top Concern Categories (Using mood_logs labels)
     const { data: moodLogs, error: logsErr } = await supabase
-      .from('mood_logs')
+      .from('mood_tracking')
       .select('label, score, created_at')
       .gte('created_at', isoSevenDaysAgo);
 

@@ -78,6 +78,11 @@ async function sendEmail(mailOptions) {
   return transporter.sendMail(mailOptions);
 }
 
+function getCounsellorAvailabilityKeys(profile) {
+  if (!profile) return [];
+  return [...new Set([profile.id, profile.user_id].filter(Boolean))];
+}
+
 // Generate Zoom meeting signature
 function generateZoomSignature(meetingNumber, role) {
   const apiKey = process.env.ZOOM_SDK_KEY;
@@ -137,10 +142,26 @@ router.get('/slots/:counsellorId', verifyToken, async (req, res) => {
 
     // FIX: Get ALL availability slots for this counsellor (not just for one day)
     // Then filter to find slots that match the selected day of week
+    const { data: profile, error: profileError } = await supabase
+      .from('counsellor_profiles')
+      .select('id, user_id')
+      .eq('user_id', counsellorId)
+      .single();
+
+    if (profileError && profileError.code !== 'PGRST116') {
+      throw profileError;
+    }
+
+    if (!profile) {
+      return res.json({ slots: [], availability: null });
+    }
+
+    const availabilityKeys = getCounsellorAvailabilityKeys(profile);
+
     const { data: allAvailability, error: availError } = await supabase
       .from('counsellor_availability')
       .select('*')
-      .eq('counsellor_id', counsellorId);
+      .in('counsellor_id', availabilityKeys);
 
     if (availError) {
       console.error('Availability fetch error:', availError);
@@ -365,7 +386,10 @@ router.post('/book', verifyToken, async (req, res) => {
 
     console.log('Insert result:', appointment, error);
 
-    if (error) throw error;
+    if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
 
     // Get student and counsellor details for email
     const { data: student } = await supabase
@@ -478,7 +502,10 @@ router.get('/my-appointments', verifyToken, async (req, res) => {
       .order('date', { ascending: true })
       .order('start_time', { ascending: true });
 
-    if (error) throw error;
+     if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
 
     // Fetch additional info for each appointment
     const appointmentsWithDetails = await Promise.all(
@@ -625,7 +652,10 @@ router.get('/counsellor/session-stats', verifyToken, async (req, res) => {
       .select('student_id, status')
       .eq('counsellor_id', counsellorId);
 
-    if (error) throw error;
+    if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
 
     const countsMap = new Map();
     (rows || []).forEach((row) => {
@@ -817,7 +847,10 @@ router.put('/reschedule/:id', verifyToken, async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+     if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
 
     res.json({ appointment: updated });
   } catch (error) {
@@ -839,7 +872,10 @@ router.put('/cancel/:id', verifyToken, async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+     if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
 
     res.json({ appointment: updated });
   } catch (error) {
@@ -867,7 +903,10 @@ router.get('/counsellor/:userId', verifyToken, async (req, res) => {
 
     console.log('Appointments query result:', appointments, error);
 
-    if (error) throw error;
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ error: error.message });
+    }
 
     // Fetch student details for each appointment
     const appointmentsWithStudents = await Promise.all(
@@ -925,7 +964,10 @@ router.get('/progress-reports', verifyToken, async (req, res) => {
       .eq('counsellor_id', counsellorId)
       .order('week_start', { ascending: false });
 
-    if (error) throw error;
+     if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
 
     res.json({ reports: reports || [] });
   } catch (error) {
@@ -949,8 +991,10 @@ router.get('/progress-reports/:id/pdf', verifyToken, async (req, res) => {
       .single();
 
     console.log('Report data:', report, 'Error:', error);
-
-    if (error) throw error;
+if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
     if (!report) {
       return res.status(404).json({ error: 'Report not found' });
     }
@@ -1269,7 +1313,10 @@ router.get('/day-orders', verifyToken, async (req, res) => {
       .eq('is_active', true)
       .order('order_number');
 
-    if (error) throw error;
+     if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
 
     res.json({ dayOrders: dayOrders || [] });
   } catch (error) {
@@ -1280,18 +1327,27 @@ router.get('/day-orders', verifyToken, async (req, res) => {
 
 // Step 2: Get counsellors available for a day order ONLY (no slots, no date)
 router.get('/day-order/:dayOrderId/counsellors', verifyToken, async (req, res) => {
+  console.log('=== DAY ORDER COUNSELLORS ENDPOINT ===');
+  console.log('dayOrderId:', req.params.dayOrderId);
+  console.log('user:', req.user?.userId, req.user?.userType);
   try {
     const { dayOrderId } = req.params;
+    console.log('--- AVAILABILITY QUERY ---');
+    const { data: availability, error: availError } = await supabase
+      .from('counsellor_availability')
+      .select('counsellor_id, day_order_id, is_available, start_time, end_time')
+      .eq('day_order_id', dayOrderId)
+      .eq('is_available', true);
+    console.log('availability count:', availability ? availability.length : 0);
+    console.log('availability:', availability);
+    if (availError) {
+      console.error('availError:', availError);
+      throw availError;
+    }
 
     if (!dayOrderId) {
       return res.status(400).json({ error: 'Day order ID is required' });
     }
-
-    const { data: availability, error: availError } = await supabase
-      .from('counsellor_availability')
-      .select('*')
-      .eq('day_order_id', dayOrderId)
-      .eq('is_available', true);
 
     if (availError) throw availError;
 
@@ -1299,19 +1355,23 @@ router.get('/day-order/:dayOrderId/counsellors', verifyToken, async (req, res) =
       return res.json({ counsellors: [] });
     }
 
-    const counsellorIds = [...new Set(availability.map(a => a.counsellor_id))];
-
     const { data: counsellorProfiles, error: profileError } = await supabase
       .from('counsellor_profiles')
       .select('id, user_id, name, designation, department, room_no, phone_no')
-      .in('id', counsellorIds);
+      .order('name');
 
     if (profileError) throw profileError;
 
-    const counsellors = counsellorProfiles.map(cp => {
-      const counsellorAvailability = availability.filter(a => a.counsellor_id === cp.id);
+    const counsellors = (counsellorProfiles || []).flatMap(cp => {
+      const availabilityKeys = getCounsellorAvailabilityKeys(cp);
+      const counsellorAvailability = availability.filter(a => availabilityKeys.includes(a.counsellor_id));
+
+      if (counsellorAvailability.length === 0) {
+        return [];
+      }
+
       const firstAvail = counsellorAvailability[0];
-      return {
+      return [{
         counsellor_id: cp.user_id,
         counsellor_name: cp.name,
         designation: cp.designation,
@@ -1320,7 +1380,7 @@ router.get('/day-order/:dayOrderId/counsellors', verifyToken, async (req, res) =
         phone_no: cp.phone_no,
         start_time: firstAvail?.start_time,
         end_time: firstAvail?.end_time
-      };
+      }];
     });
 
     res.json({ counsellors });
@@ -1359,7 +1419,7 @@ router.get('/day-order/:dayOrderId/counsellors/:counsellorId/slots', verifyToken
     const { data: rows, error: availError } = await supabase
       .from('counsellor_availability')
       .select('id, start_time, end_time')
-      .eq('counsellor_id', profile.id)
+      .in('counsellor_id', getCounsellorAvailabilityKeys(profile))
       .eq('day_order_id', dayOrderId)
       .eq('is_available', true)
       .order('start_time');
@@ -1412,16 +1472,10 @@ router.get('/day-order/:dayOrderId/available-counsellors', verifyToken, async (r
     // Get unique counsellor IDs from availability.
     // IMPORTANT: In the current DB, counsellor_availability.counsellor_id
     // references counsellor_profiles.id (profile PK), not user_id.
-    const counsellorIds = [...new Set(availability.map(a => a.counsellor_id))];
-    console.log('Counsellor IDs from availability (profile IDs):', counsellorIds);
-
-    // Get counsellor profiles by their primary key id, but also select user_id
-    // so that the rest of the system can continue to use user_id as the
-    // "public" counsellor identifier (for appointments, auth, etc.).
     const { data: counsellorProfiles, error: profileError } = await supabase
       .from('counsellor_profiles')
       .select('id, user_id, name, designation, department, room_no, phone_no')
-      .in('id', counsellorIds);
+      .order('name');
 
     if (profileError) throw profileError;
 
@@ -1439,10 +1493,13 @@ router.get('/day-order/:dayOrderId/available-counsellors', verifyToken, async (r
     }
 
     // Build response with available slots for each counsellor
-    const counsellors = counsellorProfiles.map(counsellor => {
-      // Match availability rows where counsellor_availability.counsellor_id
-      // equals counsellor_profiles.id
-      const counsellorAvailability = availability.filter(a => a.counsellor_id === counsellor.id);
+    const counsellors = (counsellorProfiles || []).flatMap(counsellor => {
+      const availabilityKeys = getCounsellorAvailabilityKeys(counsellor);
+      const counsellorAvailability = availability.filter(a => availabilityKeys.includes(a.counsellor_id));
+
+      if (counsellorAvailability.length === 0) {
+        return [];
+      }
       
       console.log(`Processing counsellor ${counsellor.name} (profile id=${counsellor.id}, user id=${counsellor.user_id})`);
       console.log(`Found ${counsellorAvailability.length} availability records`);
@@ -1464,7 +1521,7 @@ router.get('/day-order/:dayOrderId/available-counsellors', verifyToken, async (r
 
       console.log(`Total slots for ${counsellor.name}: ${allSlots.length}`);
 
-      return {
+      return [{
         // Expose user_id as counsellor_id to the frontend so the rest of
         // the system continues to use user IDs as counsellor identifiers.
         counsellor_id: counsellor.user_id,
@@ -1477,7 +1534,7 @@ router.get('/day-order/:dayOrderId/available-counsellors', verifyToken, async (r
         end_time: counsellorAvailability[0]?.end_time,
         is_available: allSlots.length > 0,
         available_slots: allSlots
-      };
+      }];
     });
 
     console.log('Returning counsellors:', counsellors.length);
@@ -1528,7 +1585,9 @@ router.post('/book-day-order', verifyToken, async (req, res) => {
         .eq('user_id', counsellorId)
         .single();
 
-      if (!profile || availRow.counsellor_id !== profile.id || availRow.day_order_id !== dayOrderId) {
+      const availabilityKeys = getCounsellorAvailabilityKeys(profile);
+
+      if (!profile || !availabilityKeys.includes(availRow.counsellor_id) || availRow.day_order_id !== dayOrderId) {
         return res.status(409).json({ error: 'Availability does not match selected counsellor or day order' });
       }
 
@@ -1608,7 +1667,10 @@ router.post('/book-day-order', verifyToken, async (req, res) => {
 
     console.log('Insert result:', appointment, error);
 
-    if (error) throw error;
+    if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
 
     // Get student and counsellor details for email
     const { data: student } = await supabase
@@ -1892,13 +1954,13 @@ router.get('/student-phq9/:studentId', verifyToken, async (req, res) => {
 
     if (error) {
       console.error('Fetch PHQ9 error:', error);
-      return res.status(500).json({ error: 'Failed to fetch questionnaire data' });
+      return res.json({ scores: [] });
     }
 
     res.json({ scores: qData || [] });
   } catch (err) {
     console.error('PHQ9 fetch error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    res.json({ scores: [] });
   }
 });
 

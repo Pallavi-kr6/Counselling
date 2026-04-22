@@ -613,7 +613,10 @@ router.post('/student/reset-password', async (req, res) => {
     // Attempt to update user password via Supabase Admin API
     try {
       const { data: updated, error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password });
-      if (error) throw error;
+       if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
     } catch (err) {
       console.error('Error updating password via admin API:', err);
       return res.status(500).json({ error: 'Failed to update password' });
@@ -784,7 +787,10 @@ router.get('/me', verifyToken, async (req, res) => {
         });
       }
 
-      if (error) throw error;
+       if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
 
       // Ensure user_type in database matches (fix any inconsistencies)
       if (user.user_type !== 'student') {
@@ -837,7 +843,10 @@ router.get('/me', verifyToken, async (req, res) => {
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+       if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
 
       return res.json({
         user: {

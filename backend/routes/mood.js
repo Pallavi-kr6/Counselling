@@ -32,7 +32,10 @@ router.post('/check-in', verifyToken, async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+     if (error) {
+  console.error(error);
+  return res.status(500).json({ error: error.message });
+}
 
     res.json({ checkIn: data });
   } catch (error) {
@@ -62,7 +65,10 @@ router.get('/history', verifyToken, async (req, res) => {
 
     const { data, error } = await query.limit(30); // Last 30 entries
 
-    if (error) throw error;
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ error: error.message });
+    }
 
     res.json({ history: data || [] });
   } catch (error) {
@@ -87,7 +93,10 @@ router.get('/dashboard', verifyToken, async (req, res) => {
       .gte('date', startDate.toISOString().split('T')[0])
       .order('date', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ error: error.message });
+    }
 
     // Calculate statistics
     const stats = calculateMoodStats(entries || []);
@@ -121,7 +130,10 @@ router.get('/student/:studentId', verifyToken, async (req, res) => {
       .gte('date', startDate.toISOString().split('T')[0])
       .order('date', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ error: error.message });
+    }
 
     const stats = calculateMoodStats(entries || []);
 
@@ -191,7 +203,7 @@ router.get('/ai-logs-trend', verifyToken, async (req, res) => {
     }
 
     const { data: moodLogs, error } = await supabase
-      .from('mood_logs')
+      .from('mood_tracking')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: true })
@@ -276,7 +288,10 @@ router.get('/streak-dates', verifyToken, async (req, res) => {
       .eq('user_id', userId)
       .order('date', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ error: error.message });
+    }
 
     // Get unique dates
     const dates = [...new Set(data.map(entry => entry.date))];

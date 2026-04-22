@@ -1,0 +1,481 @@
+/**
+ * CounsellorSessionDetail.EXAMPLE.css
+ * Example styling for the session detail page with cancel feature
+ */
+
+.session-detail-page {
+  padding: 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.session-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+.session-header h1 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.session-header p {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.notification-bell {
+  position: relative;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #667eea;
+}
+
+.notification-bell:hover {
+  background: #e5e7eb;
+  transform: scale(1.05);
+}
+
+.notification-bell .badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #dc2626;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-drawer {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 400px;
+  background: white;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.drawer-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.drawer-header button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.session-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Status Card */
+.status-card {
+  padding: 24px;
+  border-radius: 16px;
+  border-left: 6px solid;
+}
+
+.status-card.status-blue {
+  background: #eff6ff;
+  border-left-color: #3b82f6;
+}
+
+.status-card.status-green {
+  background: #f0fdf4;
+  border-left-color: #22c55e;
+}
+
+.status-card.status-red {
+  background: #fef2f2;
+  border-left-color: #ef4444;
+}
+
+.status-card.status-yellow {
+  background: #fffbeb;
+  border-left-color: #f59e0b;
+}
+
+.status-card.status-purple {
+  background: #f5f3ff;
+  border-left-color: #a855f7;
+}
+
+.status-card.status-orange {
+  background: #fff7ed;
+  border-left-color: #f97316;
+}
+
+.status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.status-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.status-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-blue .status-badge {
+  background: #3b82f6;
+  color: white;
+}
+
+.status-green .status-badge {
+  background: #22c55e;
+  color: white;
+}
+
+.status-red .status-badge {
+  background: #ef4444;
+  color: white;
+}
+
+.alert-warning {
+  background: white;
+  border-left: 4px solid #f59e0b;
+  padding: 12px 16px;
+  border-radius: 8px;
+  display: flex;
+  gap: 12px;
+  color: #92400e;
+  font-size: 14px;
+}
+
+.alert-warning svg {
+  flex-shrink: 0;
+  font-size: 20px;
+}
+
+.alert-info {
+  background: white;
+  border-left: 4px solid #3b82f6;
+  padding: 12px 16px;
+  border-radius: 8px;
+  display: flex;
+  gap: 12px;
+  color: #1e40af;
+  font-size: 14px;
+}
+
+.alert-info svg {
+  flex-shrink: 0;
+  font-size: 20px;
+}
+
+.candidates-info {
+  margin: 8px 0 0 0;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+/* Info Card */
+.info-card {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.info-card h3 {
+  margin: 0 0 20px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.info-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.info-item .label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-item .value {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.reason-text {
+  background: #f9fafb;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-style: italic;
+}
+
+/* Candidates Card */
+.candidates-card {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.candidates-card h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.candidates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.candidate-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.candidate-item.current {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.candidate-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #667eea;
+  color: white;
+  border-radius: 8px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.candidate-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.candidate-info .name {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.candidate-info .id {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.current-badge {
+  background: #22c55e;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+/* Audit Card */
+.audit-card {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.audit-card h3 {
+  margin: 0 0 20px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.timeline-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border-left: 3px solid #d1d5db;
+}
+
+.timeline-item.cancelled {
+  background: #fef2f2;
+  border-left-color: #ef4444;
+}
+
+.timeline-item.confirmed {
+  background: #f0fdf4;
+  border-left-color: #22c55e;
+}
+
+.timeline-item.last {
+  border-left-color: #667eea;
+}
+
+.timeline-item .time {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.timeline-item .date {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* Actions Card */
+.actions-card {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.actions-card h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-danger {
+  background: #dc2626;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #b91c1c;
+  transform: translateY(-2px);
+}
+
+.disabled-note {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.loading,
+.error {
+  padding: 32px 24px;
+  text-align: center;
+  font-size: 16px;
+  color: #6b7280;
+}
+
+.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border-radius: 12px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .session-detail-page {
+    padding: 16px;
+  }
+
+  .session-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .notification-drawer {
+    width: 100%;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .info-item.full-width {
+    grid-column: 1;
+  }
+}
