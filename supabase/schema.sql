@@ -166,6 +166,17 @@ CREATE TABLE IF NOT EXISTS progress_reports (
   UNIQUE(student_id, week_start)
 );
 
+-- Questionnaire responses (PHQ-9, etc.)
+CREATE TABLE IF NOT EXISTS questionnaire_responses (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  appointment_id UUID REFERENCES appointments(id) ON DELETE SET NULL,
+  type TEXT NOT NULL CHECK (type IN ('PHQ-9')),
+  responses INTEGER[] NOT NULL CHECK (array_length(responses, 1) = 9 AND array_lower(responses, 1) = 1),
+  total_score INTEGER NOT NULL CHECK (total_score BETWEEN 0 AND 27),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Zoom meetings
 CREATE TABLE IF NOT EXISTS zoom_meetings (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -218,6 +229,11 @@ CREATE INDEX IF NOT EXISTS idx_resources_type ON resources(type);
 CREATE INDEX IF NOT EXISTS idx_counsellor_availability_day_order ON counsellor_availability(day_order_id);
 CREATE INDEX IF NOT EXISTS idx_day_orders_active ON day_orders(is_active);
 
+-- Questionnaire indexes
+CREATE INDEX IF NOT EXISTS idx_questionnaire_responses_user ON questionnaire_responses(user_id);
+CREATE INDEX IF NOT EXISTS idx_questionnaire_responses_appointment ON questionnaire_responses(appointment_id);
+CREATE INDEX IF NOT EXISTS idx_questionnaire_responses_type ON questionnaire_responses(type);
+
 -- Additional performance indexes for multiple time slots support
 -- Index for checking if a time slot is already booked (prevents double-booking)
 CREATE UNIQUE INDEX IF NOT EXISTS idx_appointments_no_double_booking
@@ -258,6 +274,7 @@ ALTER TABLE counsellor_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE mood_tracking ENABLE ROW LEVEL SECURITY;
 ALTER TABLE session_feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE questionnaire_responses ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Users can view their own data
 CREATE POLICY "Users can view own data" ON users
@@ -279,7 +296,7 @@ CREATE POLICY "Counsellors can view student profiles" ON student_profiles
 
 -- Policy: Counsellors can view all counsellor profiles
 CREATE POLICY "Counsellors visible to all" ON counsellor_profiles
-  FOR SELECT USING (true);--
+  FOR SELECT USING (true);
 
 -- Policy: Users can view their own appointments
 CREATE POLICY "Users can view own appointments" ON appointments
@@ -296,5 +313,18 @@ CREATE POLICY "Counsellors can view student mood" ON mood_tracking
       SELECT 1 FROM appointments
       WHERE appointments.counsellor_id = auth.uid()
       AND appointments.student_id = mood_tracking.user_id
+    )
+  );
+
+-- Policy: Users own questionnaires + counsellors see student questionnaires
+CREATE POLICY "Users own questionnaires" ON questionnaire_responses
+  FOR ALL USING (user_id = auth.uid());
+
+CREATE POLICY "Counsellors student questionnaires" ON questionnaire_responses
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM appointments
+      WHERE appointments.counsellor_id = auth.uid()
+      AND appointments.student_id = questionnaire_responses.user_id
     )
   );
