@@ -48,33 +48,33 @@ const Appointments = () => {
   };
 
   const filteredAppointments = appointments.filter(apt => {
-      // Properly combine date + time for accurate classification
-      const appointmentStart = new Date(`${apt.date}T${apt.start_time}`);
-      const appointmentEnd = new Date(`${apt.date}T${apt.end_time}`);
-      const now = new Date();
-      
-      // DEBUG: Log classification for first few appointments
-      if (appointments.indexOf(apt) < 2) {
-        console.log(`[Appointments Filter] ID: ${apt.id}`, {
-          date: apt.date,
-          startTime: apt.start_time,
-          appointmentStart: appointmentStart.toISOString(),
-          now: now.toISOString(),
-          isUpcoming: appointmentStart > now,
-          status: apt.status
-        });
-      }
-      
-      switch (filter) {
-      case 'upcoming': 
+    // Properly combine date + time for accurate classification
+    const appointmentStart = new Date(`${apt.date}T${apt.start_time}`);
+    const appointmentEnd = new Date(`${apt.date}T${apt.end_time}`);
+    const now = new Date();
+
+    // DEBUG: Log classification for first few appointments
+    if (appointments.indexOf(apt) < 2) {
+      console.log(`[Appointments Filter] ID: ${apt.id}`, {
+        date: apt.date,
+        startTime: apt.start_time,
+        appointmentStart: appointmentStart.toISOString(),
+        now: now.toISOString(),
+        isUpcoming: appointmentStart > now,
+        status: apt.status
+      });
+    }
+
+    switch (filter) {
+      case 'upcoming':
         // Future appointment that hasn't been completed or cancelled
         return appointmentStart > now && !['cancelled', 'completed', 'pending_reassign'].includes(apt.status);
-      case 'past': 
+      case 'past':
         // Session has ended (appointment end time is before now) OR explicitly marked as completed
         return appointmentEnd < now || apt.status === 'completed';
-      case 'cancelled': 
+      case 'cancelled':
         return apt.status === 'cancelled';
-      default: 
+      default:
         return true;
     }
   });
@@ -86,8 +86,8 @@ const Appointments = () => {
 
   if (loading) return (
     <div className="flex-center" style={{ height: '80vh' }}>
-      <motion.div 
-        animate={{ opacity: [0.5, 1, 0.5], scale: [0.95, 1, 0.95] }} 
+      <motion.div
+        animate={{ opacity: [0.5, 1, 0.5], scale: [0.95, 1, 0.95] }}
         transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
         style={{ fontSize: '1.2rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '1rem' }}
       >
@@ -100,23 +100,29 @@ const Appointments = () => {
     <div className="appointments-page">
       <div className="container" style={{ maxWidth: '900px' }}>
         <header className="page-header" style={{ textAlign: 'center', margin: '3rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }} 
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             style={{ display: 'inline-flex', padding: '1rem', borderRadius: '50%', background: 'var(--primary-light)', color: 'var(--primary-dark)', marginBottom: '1.5rem' }}
           >
             <FiCalendar size={32} />
           </motion.div>
-          <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} style={{ fontSize: '2.5rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Your Journey</motion.h1>
-          <motion.p className="subtitle" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} style={{ fontSize: '1.1rem', color: 'var(--text-secondary)' }}>Making time for yourself is a beautiful step.</motion.p>
-          
+          <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} style={{ fontSize: '2.5rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+            {user?.userType === 'student' ? 'Your Journey' : 'Clinical Schedule'}
+          </motion.h1>
+          <motion.p className="subtitle" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} style={{ fontSize: '1.1rem', color: 'var(--text-secondary)' }}>
+            {user?.userType === 'student'
+              ? 'Making time for yourself is a beautiful step.'
+              : 'Your clinical schedule is below'}
+          </motion.p>
+
           {user?.userType === 'student' && (
-            <motion.button 
+            <motion.button
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               style={{ marginTop: '2rem', padding: '1rem 2rem', borderRadius: '100px', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.05rem' }}
-              className="btn btn-primary" 
+              className="btn btn-primary"
               onClick={() => navigate('/book-appointment')}
             >
               <FiPlus /> Schedule a Session
@@ -154,7 +160,7 @@ const Appointments = () => {
 
           <AnimatePresence mode="wait">
             {filteredAppointments.length > 0 ? (
-              <motion.div 
+              <motion.div
                 key={filter}
                 initial="hidden"
                 animate="visible"
@@ -166,7 +172,7 @@ const Appointments = () => {
                   const appointmentStart = new Date(`${apt.date}T${apt.start_time}`);
                   const appointmentEnd = new Date(`${apt.date}T${apt.end_time}`);
                   const now = new Date();
-                  
+
                   // Properly classify: upcoming if start time is in the future
                   // Past if end time has passed OR status is completed
                   const isUpcoming = appointmentStart > now && apt.status !== 'cancelled' && apt.status !== 'completed';
@@ -175,14 +181,14 @@ const Appointments = () => {
                   return (
                     <motion.div key={apt.id} variants={variants} style={{ position: 'relative', paddingLeft: '3.5rem' }}>
                       {/* Timeline Dot */}
-                      <div style={{ 
-                        position: 'absolute', 
-                        left: '0.15rem', 
-                        top: '1.5rem', 
-                        width: '16px', 
-                        height: '16px', 
-                        borderRadius: '50%', 
-                        background: isPast ? 'var(--success)' : (apt.status === 'cancelled' ? 'var(--text-secondary)' : 'var(--primary)'), 
+                      <div style={{
+                        position: 'absolute',
+                        left: '0.15rem',
+                        top: '1.5rem',
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
+                        background: isPast ? 'var(--success)' : (apt.status === 'cancelled' ? 'var(--text-secondary)' : 'var(--primary)'),
                         border: '4px solid var(--bg-primary)',
                         boxShadow: '0 0 0 2px rgba(46, 186, 168, 0.2)',
                         transform: 'translateX(-50%)',
@@ -190,7 +196,7 @@ const Appointments = () => {
                       }} />
 
                       <div className="appointment-card glass-card" style={{ padding: '2rem', borderRadius: '1.5rem', border: '1px solid rgba(255,255,255,0.8)', background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7))' }}>
-                        
+
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
                           <div>
                             <p style={{ color: 'var(--primary)', fontWeight: '600', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}>
@@ -208,16 +214,20 @@ const Appointments = () => {
                               )}
                             </div>
                           </div>
-                          
+
                           {isPast && apt.status !== 'cancelled' ? (
                             <div style={{ background: 'rgba(46, 196, 182, 0.1)', color: 'var(--success)', padding: '0.5rem 1rem', borderRadius: '100px', fontSize: '0.85rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                              <FiHeart /> You showed up for yourself 💙
+                              {user?.userType === 'student' ? (
+                                <><FiHeart /> You showed up for yourself 💙</>
+                              ) : (
+                                <><FiCheckCircle /> Clinical session concluded</>
+                              )}
                             </div>
                           ) : (
-                            <span style={{ 
-                              padding: '0.4rem 1rem', 
-                              borderRadius: '100px', 
-                              fontSize: '0.85rem', 
+                            <span style={{
+                              padding: '0.4rem 1rem',
+                              borderRadius: '100px',
+                              fontSize: '0.85rem',
                               fontWeight: '600',
                               background: apt.status === 'cancelled' ? '#f1f5f9' : 'var(--primary-light)',
                               color: apt.status === 'cancelled' ? '#64748b' : 'var(--primary-dark)',
@@ -233,10 +243,10 @@ const Appointments = () => {
                             <>
                               {isUpcoming ? (
                                 <>
-                                  <button style={{ padding: '0.8rem 1.5rem', borderRadius: '100px', border: 'none', background: 'var(--primary)', color: '#fff', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', transition: 'all 0.3s ease' }} onClick={() => navigate(`/session/${apt.id}`)} onMouseOver={(e) => e.target.style.transform='translateY(-2px)'} onMouseOut={(e) => e.target.style.transform='translateY(0)'}>
+                                  <button style={{ padding: '0.8rem 1.5rem', borderRadius: '100px', border: 'none', background: 'var(--primary)', color: '#fff', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', transition: 'all 0.3s ease' }} onClick={() => navigate(`/session/${apt.id}`)} onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'} onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}>
                                     <FiVideo size={18} /> Join Room
                                   </button>
-                                  <button style={{ padding: '0.8rem 1.5rem', borderRadius: '100px', border: '1px solid #e2e8f0', background: 'transparent', color: 'var(--text-secondary)', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', transition: 'all 0.3s ease' }} onClick={() => handleCancel(apt.id)} onMouseOver={(e) => e.target.style.background='#f8fafc'} onMouseOut={(e) => e.target.style.background='transparent'}>
+                                  <button style={{ padding: '0.8rem 1.5rem', borderRadius: '100px', border: '1px solid #e2e8f0', background: 'transparent', color: 'var(--text-secondary)', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', transition: 'all 0.3s ease' }} onClick={() => handleCancel(apt.id)} onMouseOver={(e) => e.target.style.background = '#f8fafc'} onMouseOut={(e) => e.target.style.background = 'transparent'}>
                                     <FiX size={18} /> Reschedule
                                   </button>
                                 </>
@@ -267,7 +277,7 @@ const Appointments = () => {
                 })}
               </motion.div>
             ) : (
-              <motion.div 
+              <motion.div
                 key="empty"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -276,13 +286,18 @@ const Appointments = () => {
                 <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto', color: 'var(--secondary)', boxShadow: 'var(--shadow-soft)' }}>
                   {filter === 'upcoming' ? <FiCalendar size={32} /> : (filter === 'past' ? <FiStar size={32} /> : <FiWind size={32} />)}
                 </div>
-                <h3 style={{ fontSize: '1.5rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>No {filter} moments here</h3>
+                <h3 style={{ fontSize: '1.5rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                  {user?.userType === 'student' ? `No ${filter} moments here` : `No ${filter} appointments`}
+                </h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', maxWidth: '400px', margin: '0 auto', lineHeight: '1.6' }}>
-                  {filter === 'upcoming' ? "Take this time for yourself. You're doing great, and we're here when you need to talk." : "Your journey is uniquely yours. Move forward gently."}
+                  {user?.userType === 'student'
+                    ? (filter === 'upcoming' ? "Take this time for yourself. You're doing great, and we're here when you need to talk." : "Your journey is uniquely yours. Move forward gently.")
+                    : (filter === 'upcoming' ? "Your schedule is currently clear." : "Historical records are archived here for your reference.")
+                  }
                 </p>
                 {user?.userType === 'student' && filter === 'upcoming' && (
-                  <button 
-                    className="btn btn-primary" 
+                  <button
+                    className="btn btn-primary"
                     onClick={() => navigate('/book-appointment')}
                     style={{ marginTop: '2rem', padding: '1rem 2.5rem', borderRadius: '100px', fontSize: '1.05rem' }}
                   >

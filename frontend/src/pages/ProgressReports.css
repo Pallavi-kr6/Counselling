@@ -81,101 +81,172 @@
   min-height: 80px;
 }
 
-.academic-row,
-.goal-row,
-.plan-row {
+.form-grid-3 {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 2fr auto;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.table-header-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 2fr 40px;
+  gap: 10px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.table-header-row.goals {
+  grid-template-columns: 2fr 1fr 2fr 40px;
+}
+
+.table-header-row.plans {
+  grid-template-columns: 2fr 2fr 1fr 40px;
+}
+
+.academic-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 2fr 40px;
   gap: 10px;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
 }
 
 .goal-row {
-  grid-template-columns: 2fr 1fr 2fr auto;
+  display: grid;
+  grid-template-columns: 2fr 1fr 2fr 40px;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
 }
 
 .plan-row {
-  grid-template-columns: 2fr 2fr 1fr auto;
+  display: grid;
+  grid-template-columns: 2fr 2fr 1fr 40px;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
 }
 
-.academic-row input,
-.goal-row input,
-.goal-row select,
-.goal-row textarea,
-.plan-row input,
-.plan-row textarea {
-  width: 100%;
+.issues-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(255,255,255,0.3);
+  border-radius: 12px;
+}
+
+.support-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
 }
 
 .checkbox-label {
-  display: block;
-  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  color: var(--text-primary);
   cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: background 0.2s;
 }
 
-.checkbox-label input {
-  margin-right: 10px;
+.checkbox-label:hover {
+  background: rgba(102, 126, 234, 0.05);
 }
 
-.signature-row {
-  display: flex;
-  gap: 15px;
-  margin-top: 10px;
+.checkbox-label.commitment {
+  padding: 1rem;
+  background: rgba(102, 126, 234, 0.05);
+  border: 1px dashed var(--primary);
+  font-weight: 500;
 }
 
-.signature-row input {
-  flex: 1;
+.glass-input-sm, .glass-select-sm {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  width: 100%;
 }
 
-.form-actions {
-  display: flex;
-  gap: 15px;
-  justify-content: center;
-  margin-top: 30px;
-}
-
-.btn {
-  padding: 10px 20px;
+.btn-trash {
+  background: none;
   border: none;
-  border-radius: 4px;
+  color: #ff4d4d;
   cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.3s;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
 }
 
-.btn-primary {
-  background: #667eea;
+.btn-trash:hover {
+  transform: scale(1.1);
+}
+
+.btn-add {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: 1px dashed var(--primary);
+  color: var(--primary);
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 1rem;
+  transition: all 0.2s;
+}
+
+.btn-add:hover {
+  background: var(--primary);
   color: white;
 }
 
-.btn-primary:hover {
-  background: #5a6fd8;
+.form-actions-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(0,0,0,0.05);
 }
 
-.btn-secondary {
-  background: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background: #5a6268;
-}
-
-.btn-success {
-  background: #28a745;
-  color: white;
-}
-
-.btn-success:hover {
-  background: #218838;
-}
-
-.loading {
+.loading-screen {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 200px;
-  font-size: 18px;
-  color: #666;
+  height: 50vh;
+  font-size: 1.25rem;
+  color: var(--text-secondary);
 }
+
+@media (max-width: 768px) {
+  .form-grid-3, .form-grid-2, .issues-grid, .support-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .academic-row, .goal-row, .plan-row, .table-header-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+}
