@@ -23,6 +23,8 @@ import CounsellorSessions from './pages/CounsellorSessions';
 import CounsellorStudentDetail from './pages/CounsellorStudentDetail';
 import AdminInsights from './pages/AdminInsights';
 import PHQ9Form from './pages/PHQ9Form';
+import Landing from './pages/Landing';
+import Professionals from './pages/Professionals';
 import Navbar from './components/Navbar';
 import './App.css';
 
@@ -59,8 +61,26 @@ function AnimatedRoutes() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/signup" element={<Signup />} />
+        <Route 
+          path="/" 
+          element={
+            <>
+              <Navbar />
+              <PageWrapper><Landing /></PageWrapper>
+            </>
+          } 
+        />
+        <Route 
+          path="/professionals" 
+          element={
+            <>
+              <Navbar />
+              <PageWrapper><Professionals /></PageWrapper>
+            </>
+          } 
+        />
         <Route
-          path="/"
+          path="/dashboard"
           element={
             <PrivateRoute>
               <Navbar />
@@ -107,10 +127,10 @@ function AnimatedRoutes() {
         <Route
           path="/resources"
           element={
-            <StudentOnlyRoute>
+            <PrivateRoute>
               <Navbar />
               <PageWrapper><Resources /></PageWrapper>
-            </StudentOnlyRoute>
+            </PrivateRoute>
           }
         />
         <Route

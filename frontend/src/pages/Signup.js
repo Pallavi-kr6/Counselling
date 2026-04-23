@@ -76,7 +76,7 @@ const Signup = () => {
 
       if (response.data.success) {
         login(response.data.token, response.data.user);
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid OTP code. Please try again.');

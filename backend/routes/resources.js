@@ -122,4 +122,52 @@ router.post('/:id/view', verifyToken, async (req, res) => {
   }
 });
 
+// Delete resource (counsellors only)
+router.delete('/:id', verifyToken, async (req, res) => {
+  try {
+    if (req.user.userType !== 'counsellor') {
+      return res.status(403).json({ error: 'Only counsellors can delete resources' });
+    }
+
+    // 1. Get resource to check for file URL
+    const { data: resource, error: getError } = await supabase
+      .from('resources')
+      .select('url')
+      .eq('id', req.params.id)
+      .single();
+
+    if (getError) {
+      return res.status(404).json({ error: 'Resource not found' });
+    }
+
+    // 2. If it's a Supabase storage URL, try to delete the file
+    if (resource.url && resource.url.includes('supabase.co/storage')) {
+      try {
+        const urlParts = resource.url.split('/');
+        const fileName = urlParts[urlParts.length - 1];
+        await supabase.storage.from('resources').remove([fileName]);
+      } catch (storageErr) {
+        console.error('Failed to delete storage file:', storageErr);
+        // Continue with DB deletion even if storage fails
+      }
+    }
+
+    // 3. Delete from DB
+    const { error: deleteError } = await supabase
+      .from('resources')
+      .delete()
+      .eq('id', req.params.id);
+
+    if (deleteError) {
+      console.error(deleteError);
+      return res.status(500).json({ error: deleteError.message });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete resource error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 module.exports = router;

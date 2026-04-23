@@ -61,7 +61,7 @@ const Login = () => {
       if (!profileResponse.data.profile) {
         navigate('/signup');
       } else {
-        navigate('/');
+        navigate('/dashboard');
       }
 
     } catch (err) {
@@ -89,7 +89,7 @@ const Login = () => {
         name: response.data.user.name
       });
 
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed. Please check your Teacher ID.');
     } finally {

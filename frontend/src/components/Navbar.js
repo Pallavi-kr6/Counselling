@@ -39,6 +39,7 @@ const Navbar = () => {
 
   const baseNavItems = [
     { path: '/', icon: FiHome, label: t('nav.home') },
+    ...(user ? [{ path: '/dashboard', icon: FiSettings, label: 'Dashboard' }] : []),
     { path: '/profile', icon: FiUser, label: t('nav.profile') },
     { path: '/appointments', icon: FiCalendar, label: t('nav.appointments') }
   ];
@@ -51,7 +52,8 @@ const Navbar = () => {
   ];
 
   const counsellorNavItems = [
-    { path: '/sessions-summary', icon: FiUsers, label: 'Student Details' }
+    { path: '/sessions-summary', icon: FiUsers, label: 'Student Details' },
+    { path: '/resources', icon: FiBook, label: t('nav.resources') }
   ];
 
   let navItems = baseNavItems;

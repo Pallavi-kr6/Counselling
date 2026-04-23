@@ -4,14 +4,25 @@ const dotenv = require('dotenv');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
-// Load env from repo root .env (works locally; on Render, env vars are set in dashboard)
-const envPath = path.resolve(__dirname, '..', '.env');
-dotenv.config({ path: envPath });
+// Load env from repo root .env or local backend .env
+const fs = require('fs');
+const rootEnv = path.resolve(__dirname, '..', '.env');
+const localEnv = path.resolve(__dirname, '.env');
 
-console.log('SUPABASE_URL:', process.env.SUPABASE_URL);
+if (fs.existsSync(rootEnv)) {
+  console.log('Loading env from root:', rootEnv);
+  dotenv.config({ path: rootEnv });
+} else if (fs.existsSync(localEnv)) {
+  console.log('Loading env from local:', localEnv);
+  dotenv.config({ path: localEnv });
+} else {
+  console.warn('No .env file found at', rootEnv, 'or', localEnv);
+}
+
+console.log('SUPABASE_URL:', process.env.SUPABASE_URL || 'UNDEFINED');
 console.log('SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? 'loaded' : 'not loaded');
 console.log('SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'loaded' : 'not loaded');
-console.log('GROQ_API_KEY:', process.env.GROQ_API_KEY ? 'loaded' : 'NOT SET - chatbot will use fallback');
+console.log('GROQ_API_KEY:', process.env.GROQ_API_KEY ? 'loaded' : 'NOT SET');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
