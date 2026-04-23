@@ -3,7 +3,7 @@ import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../utils/supabase';
-import { FiBook, FiVideo, FiHeadphones, FiSearch, FiExternalLink, FiWind, FiHeart, FiStar, FiCoffee, FiMoon, FiShield, FiTool, FiPlus, FiX, FiLink, FiFile, FiTrash2 } from 'react-icons/fi';
+import { FiBook, FiVideo, FiHeadphones, FiSearch, FiExternalLink, FiWind, FiHeart, FiStar, FiCoffee, FiMoon, FiShield, FiTool, FiPlus, FiX, FiFile, FiTrash2 } from 'react-icons/fi';
 import './Resources.css';
 
 const SAMPLE_RESOURCES = [

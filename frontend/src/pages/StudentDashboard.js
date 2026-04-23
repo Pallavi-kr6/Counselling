@@ -28,7 +28,7 @@ const StudentDashboard = () => {
 
   const [upcomingAppointments, setUpcomingAppointments] = useState([]);
   const [moodStreak, setMoodStreak] = useState(0);
-  const [hasMoodToday] = useState(false);
+  const [hasMoodToday, setHasMoodToday] = useState(false);
   const [aiMoodLogs, setAiMoodLogs] = useState([]);
   const [averageMoodScore, setAverageMoodScore] = useState(null);
   const [moodInsight, setMoodInsight] = useState('');
@@ -75,16 +75,13 @@ const StudentDashboard = () => {
           let today = new Date();
           
           let hasToday = dateObjects.some(d => isSameDay(d, today));
-          let checkDate = hasToday ? today : subDays(today, 1);
+          setHasMoodToday(hasToday);
           
-          while (true) {
-            const hasEntry = dateObjects.some(d => isSameDay(d, checkDate));
-            if (hasEntry) {
-              currentStreak++;
-              checkDate = subDays(checkDate, 1);
-            } else {
-              break;
-            }
+          // Calculate streak
+          let checkDate = hasToday ? today : subDays(today, 1);
+          while (dateObjects.some(d => isSameDay(d, checkDate))) {
+            currentStreak++;
+            checkDate = subDays(checkDate, 1);
           }
           setMoodStreak(currentStreak);
         } else {
@@ -182,6 +179,14 @@ const StudentDashboard = () => {
     return () => clearInterval(interval);
   }, [user, fetchPendingReassignment]);
 
+  const handleMoodClick = () => {
+    if (hasMoodToday) {
+      alert('ALREADY CHECKED IN');
+    } else {
+      navigate('/mood');
+    }
+  };
+
   if (loading) return (
     <div className="flex-center" style={{ height: '80vh' }}>
       <motion.div 
@@ -237,8 +242,8 @@ const StudentDashboard = () => {
               Whether you're feeling overwhelmed, perfectly fine, or somewhere in between your feelings are valid. Would you like to check in?
             </p>
             <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button className="btn btn-primary" onClick={() => navigate('/mood')} style={{ padding: '1rem 2.5rem', borderRadius: '100px', fontSize: '1.05rem', boxShadow: '0 8px 25px rgba(46, 186, 168, 0.25)' }}>
-                Share how you feel
+              <button className="btn btn-primary" onClick={handleMoodClick} style={{ padding: '1rem 2.5rem', borderRadius: '100px', fontSize: '1.05rem', boxShadow: '0 8px 25px rgba(46, 186, 168, 0.25)' }}>
+                {hasMoodToday ? 'View your mood' : 'Share how you feel'}
               </button>
               <button onClick={() => navigate('/ai-counselling')} style={{ padding: '1rem 2.5rem', background: 'rgba(255, 255, 255, 0.9)', color: 'var(--text-primary)', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '100px', fontSize: '1.05rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.3s ease', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }} onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'} onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}>
                 Chat with someone

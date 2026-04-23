@@ -18,6 +18,24 @@ router.post('/check-in', verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'Mood or emoji required' });
     }
 
+    const today = new Date().toISOString().split('T')[0];
+
+    // Check if already checked in today
+    const { data: existingCheckIn, error: checkError } = await supabase
+      .from('mood_tracking')
+      .select('id')
+      .eq('user_id', req.user.userId)
+      .eq('date', today)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('Error checking existing check-in:', checkError);
+    }
+
+    if (existingCheckIn) {
+      return res.status(400).json({ error: 'ALREADY_CHECKED_IN' });
+    }
+
     const { data, error } = await supabase
       .from('mood_tracking')
       .insert({
@@ -27,7 +45,7 @@ router.post('/check-in', verifyToken, async (req, res) => {
         notes: notes || null,
         stress_level: stressLevel || null,
         sleep_hours: sleepHours || null,
-        date: new Date().toISOString().split('T')[0]
+        date: today
       })
       .select()
       .single();

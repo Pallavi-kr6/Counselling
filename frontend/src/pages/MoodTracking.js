@@ -2,16 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
 import { motion } from 'framer-motion';
-import { LineChart, Line as RechartsLine, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, Dot } from 'recharts';
+import { LineChart, Line as RechartsLine, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { 
-  FiSmile, 
   FiWind, 
   FiMoon, 
   FiEdit3, 
   FiHeart, 
   FiActivity, 
-  FiCalendar,
-  FiChevronRight
+  FiCalendar
 } from 'react-icons/fi';
 import './MoodTracking.css';
 
@@ -29,6 +27,7 @@ const MoodTracking = () => {
   const [stats, setStats] = useState(null);
   const [gentleInsight, setGentleInsight] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [hasCheckedInToday, setHasCheckedInToday] = useState(false);
 
   const emojis = [
     { icon: '😢', label: 'Struggling', val: 1 },
@@ -102,7 +101,15 @@ const MoodTracking = () => {
   const fetchMoodHistory = async () => {
     try {
       const response = await api.get('/mood/history');
-      setHistory(response.data.history || []);
+      const hist = response.data.history || [];
+      setHistory(hist);
+      
+      const today = new Date().toISOString().split('T')[0];
+      const alreadyChecked = hist.some(entry => {
+        const entryDate = new Date(entry.date).toISOString().split('T')[0];
+        return entryDate === today;
+      });
+      setHasCheckedInToday(alreadyChecked);
     } catch (error) {
       console.error('Error fetching mood history:', error);
     }
@@ -119,6 +126,10 @@ const MoodTracking = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (hasCheckedInToday) {
+      alert('ALREADY CHECKED IN');
+      return;
+    }
     setSubmitting(true);
     try {
       await api.post('/mood/check-in', {
@@ -127,8 +138,15 @@ const MoodTracking = () => {
       setNotes('');
       fetchMoodHistory();
       fetchDashboard();
+      alert('Mood saved successfully!');
     } catch (error) {
-      console.error('Error saving check-in:', error);
+      if (error.response?.data?.error === 'ALREADY_CHECKED_IN') {
+        alert('ALREADY CHECKED IN');
+        setHasCheckedInToday(true);
+      } else {
+        console.error('Error saving check-in:', error);
+        alert('Error saving check-in. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -333,9 +351,25 @@ const MoodTracking = () => {
                 />
               </div>
 
-              <button type="submit" className="btn btn-primary btn-block" disabled={submitting} style={{ padding: '1.25rem', fontSize: '1.1rem', borderRadius: '100px' }}>
-                {submitting ? 'Holding space...' : 'Save this moment'}
+              <button 
+                type="submit" 
+                className={`btn btn-primary btn-block ${hasCheckedInToday ? 'disabled' : ''}`} 
+                disabled={submitting || hasCheckedInToday} 
+                style={{ 
+                  padding: '1.25rem', 
+                  fontSize: '1.1rem', 
+                  borderRadius: '100px',
+                  background: hasCheckedInToday ? '#cbd5e1' : 'var(--primary)',
+                  cursor: hasCheckedInToday ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {submitting ? 'Holding space...' : hasCheckedInToday ? 'Already Checked In Today' : 'Save this moment'}
               </button>
+              {hasCheckedInToday && (
+                <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-1.5rem' }}>
+                  You've already shared your heart today. See you tomorrow! 🌷
+                </p>
+              )}
             </form>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
