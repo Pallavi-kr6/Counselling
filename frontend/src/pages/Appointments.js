@@ -48,13 +48,34 @@ const Appointments = () => {
   };
 
   const filteredAppointments = appointments.filter(apt => {
-      const aptDate = new Date(`${apt.date}T${apt.start_time}`);
+      // Properly combine date + time for accurate classification
+      const appointmentStart = new Date(`${apt.date}T${apt.start_time}`);
+      const appointmentEnd = new Date(`${apt.date}T${apt.end_time}`);
       const now = new Date();
+      
+      // DEBUG: Log classification for first few appointments
+      if (appointments.indexOf(apt) < 2) {
+        console.log(`[Appointments Filter] ID: ${apt.id}`, {
+          date: apt.date,
+          startTime: apt.start_time,
+          appointmentStart: appointmentStart.toISOString(),
+          now: now.toISOString(),
+          isUpcoming: appointmentStart > now,
+          status: apt.status
+        });
+      }
+      
       switch (filter) {
-      case 'upcoming': return aptDate > now && !['cancelled', 'completed', 'pending_reassign'].includes(apt.status);
-      case 'past': return aptDate < now || apt.status === 'completed';
-      case 'cancelled': return apt.status === 'cancelled';
-      default: return true;
+      case 'upcoming': 
+        // Future appointment that hasn't been completed or cancelled
+        return appointmentStart > now && !['cancelled', 'completed', 'pending_reassign'].includes(apt.status);
+      case 'past': 
+        // Session has ended (appointment end time is before now) OR explicitly marked as completed
+        return appointmentEnd < now || apt.status === 'completed';
+      case 'cancelled': 
+        return apt.status === 'cancelled';
+      default: 
+        return true;
     }
   });
 
@@ -142,9 +163,14 @@ const Appointments = () => {
                 style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}
               >
                 {filteredAppointments.map((apt) => {
-                  const aptDate = new Date(`${apt.date}T${apt.start_time}`);
-                  const isUpcoming = aptDate > new Date() && apt.status !== 'cancelled' && apt.status !== 'completed';
-                  const isPast = filter === 'past' || apt.status === 'completed';
+                  const appointmentStart = new Date(`${apt.date}T${apt.start_time}`);
+                  const appointmentEnd = new Date(`${apt.date}T${apt.end_time}`);
+                  const now = new Date();
+                  
+                  // Properly classify: upcoming if start time is in the future
+                  // Past if end time has passed OR status is completed
+                  const isUpcoming = appointmentStart > now && apt.status !== 'cancelled' && apt.status !== 'completed';
+                  const isPast = appointmentEnd < now || apt.status === 'completed';
 
                   return (
                     <motion.div key={apt.id} variants={variants} style={{ position: 'relative', paddingLeft: '3.5rem' }}>
@@ -168,7 +194,7 @@ const Appointments = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
                           <div>
                             <p style={{ color: 'var(--primary)', fontWeight: '600', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}>
-                              <FiCalendar /> {aptDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                              <FiCalendar /> {appointmentStart.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                             </p>
                             <h3 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
                               {user?.userType === 'student'

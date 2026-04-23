@@ -7,6 +7,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 const PDFDocument = require('pdfkit');
 const { buildFollowUpSchedule } = require('../services/followUpService');
+const { getDateTime, formatDateTimeForLog, normalizeTime } = require('../utils/dateTimeHelper');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -379,13 +380,22 @@ router.post('/book', verifyToken, async (req, res) => {
         date: date,
         start_time: startTime,
         end_time: endTime,
+        start_datetime: getDateTime(date, startTime).toISOString(),
+        end_datetime: getDateTime(date, endTime).toISOString(),
         status: 'scheduled',
         notes: notes || null
       })
       .select()
       .single();
 
-    console.log('Insert result:', appointment, error);
+    console.log('Appointment booked:', { 
+      id: appointment?.id, 
+      date, 
+      startTime, 
+      endTime,
+      startDateTime: getDateTime(date, startTime).toISOString(),
+      endDateTime: getDateTime(date, endTime).toISOString()
+    });
 
     if (error) {
   console.error(error);
@@ -1666,13 +1676,20 @@ router.post('/book-day-order', verifyToken, async (req, res) => {
         date: date,
         start_time: start_time,
         end_time: end_time,
+        start_datetime: getDateTime(date, start_time).toISOString(),
+        end_datetime: getDateTime(date, end_time).toISOString(),
         status: 'scheduled',
         notes: notes || null
       })
       .select()
       .single();
 
-    console.log('Insert result:', appointment, error);
+    console.log('Day-order appointment booked:', { 
+      id: appointment?.id, 
+      date, 
+      startTime: start_time,
+      startDateTime: getDateTime(date, start_time).toISOString()
+    });
 
     if (error) {
   console.error(error);

@@ -3,6 +3,7 @@ const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
 const { verifyToken } = require('./auth');
 const axios = require('axios');
+const { getDateTime } = require('../utils/dateTimeHelper');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -133,9 +134,15 @@ router.post('/create-meeting/:appointmentId', verifyToken, async (req, res) => {
 
     const topic = `Counselling Session - ${counsellorProfile?.name || 'Counsellor'} & ${studentProfile?.name || 'Student'}`;
     
-    // Calculate meeting start time
-    const meetingDateTime = new Date(`${appointment.date}T${appointment.start_time}`);
-    const startTime = meetingDateTime.toISOString();
+    // Calculate meeting start time using proper datetime helper
+    const startDateTime = getDateTime(appointment.date, appointment.start_time);
+    const startTime = startDateTime.toISOString();
+    
+    console.log(`[Zoom] Creating meeting for ${topic}:`, {
+      date: appointment.date,
+      startTime: appointment.start_time,
+      startDateTime: startTime
+    });
     
     // Calculate duration in minutes
     const start = new Date(`2000-01-01T${appointment.start_time}`);
