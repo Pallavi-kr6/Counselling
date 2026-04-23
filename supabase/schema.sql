@@ -79,6 +79,10 @@ CREATE TABLE IF NOT EXISTS appointments (
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
   status TEXT DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'confirmed', 'rescheduled', 'cancelled', 'completed')),
+  completed_at TIMESTAMP WITH TIME ZONE,
+  followup_at TIMESTAMP WITH TIME ZONE,
+  student_followup_sent_at TIMESTAMP WITH TIME ZONE,
+  counsellor_followup_sent_at TIMESTAMP WITH TIME ZONE,
   notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -207,6 +211,7 @@ CREATE INDEX IF NOT EXISTS idx_appointments_student ON appointments(student_id);
 CREATE INDEX IF NOT EXISTS idx_appointments_counsellor ON appointments(counsellor_id);
 CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(date);
 CREATE INDEX IF NOT EXISTS idx_appointments_day_order ON appointments(day_order_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_followup_due ON appointments(status, followup_at);
 CREATE INDEX IF NOT EXISTS idx_mood_tracking_user_date ON mood_tracking(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_resources_category ON resources(category);
 CREATE INDEX IF NOT EXISTS idx_resources_type ON resources(type);

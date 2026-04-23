@@ -9,6 +9,7 @@ const fs = require('fs');
 const rootEnv = path.resolve(__dirname, '..', '.env');
 const localEnv = path.resolve(__dirname, '.env');
 
+ 
 if (fs.existsSync(rootEnv)) {
   console.log('Loading env from root:', rootEnv);
   dotenv.config({ path: rootEnv });
@@ -20,6 +21,12 @@ if (fs.existsSync(rootEnv)) {
 }
 
 console.log('SUPABASE_URL:', process.env.SUPABASE_URL || 'UNDEFINED');
+ 
+// Require cron AFTER dotenv loads to ensure env vars are available
+const { startCronJobs } = require('./config/cron');
+
+console.log('SUPABASE_URL:', process.env.SUPABASE_URL);
+ 
 console.log('SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? 'loaded' : 'not loaded');
 console.log('SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'loaded' : 'not loaded');
 console.log('GROQ_API_KEY:', process.env.GROQ_API_KEY ? 'loaded' : 'NOT SET');
@@ -83,4 +90,5 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
+  startCronJobs();
 });

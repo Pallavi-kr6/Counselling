@@ -6,6 +6,7 @@ const nodemailer = require('nodemailer');
 const axios = require('axios');
 const crypto = require('crypto');
 const PDFDocument = require('pdfkit');
+const { buildFollowUpSchedule } = require('../services/followUpService');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -590,10 +591,16 @@ router.put('/complete/:id', verifyToken, async (req, res) => {
       return res.status(400).json({ error: `Cannot complete appointment with status: ${appointment.status}` });
     }
 
-    // Update status to completed
+    // Update status to completed and schedule the 7-day follow-up workflow
+    const followUpSchedule = buildFollowUpSchedule();
+
     const { data: updated, error: updateError } = await supabase
       .from('appointments')
-      .update({ status: 'completed', updated_at: new Date().toISOString() })
+      .update({
+        status: 'completed',
+        ...followUpSchedule,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', appointmentId)
       .select()
       .single();
