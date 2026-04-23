@@ -63,7 +63,10 @@ router.get('/:id', verifyToken, async (req, res) => {
 // Create resource (counsellors only)
 router.post('/', verifyToken, async (req, res) => {
   try {
+    console.log('--- Authorization Check ---');
+    console.log('Request User:', req.user);
     if (req.user.userType !== 'counsellor') {
+      console.warn('Access denied: User is not a counsellor. userType:', req.user.userType);
       return res.status(403).json({ error: 'Only counsellors can create resources' });
     }
 
@@ -125,7 +128,10 @@ router.post('/:id/view', verifyToken, async (req, res) => {
 // Delete resource (counsellors only)
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
+    console.log('--- Delete Authorization Check ---');
+    console.log('Request User:', req.user);
     if (req.user.userType !== 'counsellor') {
+      console.warn('Delete Access denied: User is not a counsellor. userType:', req.user.userType);
       return res.status(403).json({ error: 'Only counsellors can delete resources' });
     }
 
