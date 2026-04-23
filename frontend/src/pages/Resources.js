@@ -125,11 +125,13 @@ const Resources = () => {
   const fetchResources = useCallback(async () => {
     try {
       const response = await api.get('/resources');
-      // If no resources in DB, use our sample content per requirement
-      setResources(response.data.resources?.length > 0 ? response.data.resources : SAMPLE_RESOURCES);
+      const dbResources = response.data.resources || [];
+      
+      // Combine sample resources with database resources so the "older" samples don't vanish
+      // We place DB resources first so the newest content is at the top
+      setResources([...dbResources, ...SAMPLE_RESOURCES]);
     } catch (error) {
       console.error('Error fetching resources:', error);
-      // Fallback to sample
       setResources(SAMPLE_RESOURCES);
     } finally {
       setLoading(false);
@@ -318,7 +320,7 @@ const Resources = () => {
                             {displayType}
                           </span>
                           
-                          {user?.userType === 'counsellor' && (
+                          {user?.userType === 'counsellor' && typeof resource.id === 'string' && (
                             <motion.button
                               whileHover={{ scale: 1.1, color: 'var(--danger)' }}
                               whileTap={{ scale: 0.9 }}
