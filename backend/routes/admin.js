@@ -45,8 +45,8 @@ router.get('/insights', verifyToken, requireAdmin, async (req, res) => {
 
     // 2) Top Concern Categories (Using mood_logs labels)
     const { data: moodLogs, error: logsErr } = await supabase
-      .from('mood_tracking')
-      .select('label, score, created_at')
+      .from('mood_logs')
+      .select('label, mood_score, created_at')
       .gte('created_at', isoSevenDaysAgo);
 
     const concernsCount = {};
@@ -61,7 +61,7 @@ router.get('/insights', verifyToken, requireAdmin, async (req, res) => {
       if (!trendsByDate[dateStr]) {
         trendsByDate[dateStr] = { sum: 0, count: 0 };
       }
-      trendsByDate[dateStr].sum += log.score;
+      trendsByDate[dateStr].sum += log.mood_score;
       trendsByDate[dateStr].count += 1;
     });
 
@@ -325,7 +325,7 @@ router.get('/department-heatmap', verifyToken, requireAdmin, async (req, res) =>
     // 2. mood_logs within window
     const { data: moodLogs, error: moodErr } = await supabase
       .from('mood_logs')
-      .select('user_id, score, created_at')
+      .select('user_id, mood_score, created_at')
       .gte('created_at', startIso);
     if (moodErr && moodErr.code !== 'PGRST116') throw moodErr;
 
@@ -357,7 +357,7 @@ router.get('/department-heatmap', verifyToken, requireAdmin, async (req, res) =>
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       if (!grid[dept])      grid[dept]      = {};
       if (!grid[dept][key]) grid[dept][key] = { scores: [], alertCount: 0 };
-      grid[dept][key].scores.push(Number(log.score));
+      grid[dept][key].scores.push(Number(log.mood_score));
     });
 
     (crisisAlerts || []).forEach(alert => {

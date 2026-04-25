@@ -184,7 +184,7 @@ async function runMonthlyReport() {
 
     // Send email
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: emails.join(', '),
       subject: `Monthly Counselling Report: ${firstDayLastMonth.toLocaleString('default', { month: 'long' })}`,
       text: 'Please find the attached monthly clinical report summarizing student engagement, crisis alerts, and mood telemetry.',

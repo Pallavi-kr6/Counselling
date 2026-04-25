@@ -348,7 +348,6 @@ const CounsellorDashboard = () => {
       console.error('Resolve error:', err);
     }
   };
-  };
 
   const containerVariants = {
     hidden: { opacity: 0 },

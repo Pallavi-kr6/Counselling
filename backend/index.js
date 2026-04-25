@@ -32,7 +32,7 @@ console.log('SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY 
 console.log('GROQ_API_KEY:', process.env.GROQ_API_KEY ? 'loaded' : 'NOT SET');
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 
 // CORS — allow frontend Render URL + localhost
 const allowedOrigins = [
@@ -97,7 +97,7 @@ app.listen(PORT, () => {
   startMoodAnalysisJob();
 
   // Start the monthly SVG/PDF report cron job
-  const { startMonthlyReportJob } = require('./jobs/monthlyReportJob');
+  const { startMonthlyReportJob } = require('./jobs/MonthlyReportJob');
   startMonthlyReportJob();
 
 });

@@ -99,7 +99,7 @@ async function analyzeAndLogSentiment(userId, sessionId, userMessage) {
       await supabase.from('mood_logs').insert({
         user_id: userId,
         session_id: sessionId,
-        score: parseInt(result.score, 10),
+        mood_score: parseInt(result.score, 10),
         label: result.label.toLowerCase()
       });
       console.log(`🧠 Logged sentiment for ${userId}: ${result.label} (${result.score})`);

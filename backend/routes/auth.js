@@ -167,8 +167,7 @@ router.post('/student/send-otp', async (req, res) => {
     };
 
     const info = await sendEmail(mailOptions);
-    console.log('✅ Email sent successfully:', info.messageId);
-    console.log('📬 Email response:', info.response);
+    console.log('✅ Email sent successfully. Via:', info.via || 'smtp', '| MessageId:', info.messageId || 'n/a');
 
     res.json({ 
       success: true, 
@@ -280,7 +279,7 @@ router.post('/student/send-signup-otp', async (req, res) => {
     };
 
     const info = await sendEmail(mailOptions);
-    console.log('✅ Email sent successfully:', info.messageId);
+    console.log('✅ Signup OTP email sent. Via:', info.via || 'smtp', '| MessageId:', info.messageId || 'n/a');
 
     res.json({ 
       success: true, 

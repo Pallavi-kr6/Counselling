@@ -263,4 +263,25 @@ router.delete('/:id', verifyToken, async (req, res) => {
   }
 });
 
+// Get a suggested resource based on topic
+router.get('/suggest', async (req, res) => {
+  try {
+    const { topic } = req.query;
+    if (!topic) return res.status(400).json({ error: 'Topic required' });
+
+    const { data, error } = await supabase
+      .from('resources')
+      .select('*')
+      .eq('category', topic.toLowerCase())
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+    res.json({ resource: data });
+  } catch (error) {
+    console.error('Suggest resource error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 module.exports = router;
