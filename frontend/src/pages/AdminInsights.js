@@ -5,9 +5,10 @@ import api from '../utils/api';
 import { motion } from 'framer-motion';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as LineTooltip, ResponsiveContainer,
-  BarChart, Bar, Tooltip as BarTooltip, Legend, PieChart, Pie, Cell
+  BarChart, Bar, Tooltip as BarTooltip, Cell,
 } from 'recharts';
 import { FiUsers, FiCalendar, FiTrendingUp, FiAlertTriangle } from 'react-icons/fi';
+import DepartmentHeatmap from '../components/DepartmentHeatmap';
 import './Dashboard.css';
 
 const AdminInsights = () => {
@@ -16,14 +17,12 @@ const AdminInsights = () => {
   const [loading, setLoading] = useState(true);
   const [insights, setInsights] = useState({
     weeklyActiveUsers: 0,
-    topConcerns: [],
-    noShowRate: 0,
-    moodScoreTrend: []
+    topConcerns:       [],
+    noShowRate:        0,
+    moodScoreTrend:    [],
   });
 
   useEffect(() => {
-    // For local dev, we might mock this if the user hasn't explicitly set themselves to admin in DB.
-    // In production, user.userType === 'admin' is required.
     const fetchInsights = async () => {
       try {
         const res = await api.get('/admin/insights');
@@ -34,55 +33,75 @@ const AdminInsights = () => {
         setLoading(false);
       }
     };
-
     fetchInsights();
   }, []);
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+  const COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
 
   if (loading) {
     return (
       <div className="flex-center" style={{ height: '80vh' }}>
-        <p>Loading Insights Database...</p>
+        <p>Loading Insights Database…</p>
       </div>
     );
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="dashboard" style={{ padding: '2rem' }}>
-      <div className="container" style={{ maxWidth: '1200px' }}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="dashboard"
+      style={{ padding: '2rem' }}
+    >
+      <div className="container" style={{ maxWidth: '1280px' }}>
+
+        {/* ── Page header ─────────────────────────────────────── */}
         <header style={{ marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '2rem', color: 'var(--text-primary)' }}>Administrative Insights</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Aggregate overview of user engagement, appointment metrics, and AI chat topics.</p>
+          <h1 style={{ fontSize: '2rem', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+            Administrative Insights
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+            Aggregate overview of user engagement, appointment metrics, mood trends, and
+            department wellness — all data anonymised.
+          </p>
         </header>
 
-        {/* Top KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+        {/* ── Top KPI cards ────────────────────────────────────── */}
+        <div style={{
+          display:             'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap:                 '1.5rem',
+          marginBottom:        '2rem',
+        }}>
           <div className="glass-card" style={{ padding: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div style={{ padding: '1rem', background: 'rgba(46, 196, 182, 0.1)', borderRadius: '50%', color: '#2ec4b6' }}>
+            <div style={{ padding: '1rem', background: 'rgba(46,196,182,0.1)', borderRadius: '50%', color: '#2ec4b6' }}>
               <FiUsers size={32} />
             </div>
             <div>
-              <h3 style={{ fontSize: '2rem', margin: 0, color: 'var(--text-primary)' }}>{insights.weeklyActiveUsers}</h3>
+              <h3 style={{ fontSize: '2rem', margin: 0, color: 'var(--text-primary)' }}>
+                {insights.weeklyActiveUsers}
+              </h3>
               <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Weekly Active Users</p>
             </div>
           </div>
 
           <div className="glass-card" style={{ padding: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div style={{ padding: '1rem', background: 'rgba(231, 76, 60, 0.1)', borderRadius: '50%', color: '#e74c3c' }}>
+            <div style={{ padding: '1rem', background: 'rgba(231,76,60,0.1)', borderRadius: '50%', color: '#e74c3c' }}>
               <FiCalendar size={32} />
             </div>
             <div>
-              <h3 style={{ fontSize: '2rem', margin: 0, color: 'var(--text-primary)' }}>{insights.noShowRate}%</h3>
+              <h3 style={{ fontSize: '2rem', margin: 0, color: 'var(--text-primary)' }}>
+                {insights.noShowRate}%
+              </h3>
               <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Appointment No-Show Rate</p>
             </div>
           </div>
         </div>
 
-        {/* Charts Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-          
-          {/* Average Mood Trend */}
+        {/* ── Charts row ───────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+
+          {/* Avg Mood Trend */}
           <div className="glass-card" style={{ padding: '2rem' }}>
             <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <FiTrendingUp color="#3498db" /> AI Mood Score Trend (Past Week)
@@ -133,8 +152,18 @@ const AdminInsights = () => {
               )}
             </div>
           </div>
-
         </div>
+
+        {/* ── Department Wellness Heatmap ──────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.4 }}
+          style={{ marginBottom: '2rem' }}
+        >
+          <DepartmentHeatmap />
+        </motion.div>
+
       </div>
     </motion.div>
   );

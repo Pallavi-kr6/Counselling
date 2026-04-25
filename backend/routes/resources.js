@@ -1,5 +1,5 @@
 const express = require('express');
-const router = express.Router();
+const router  = express.Router();
 const { createClient } = require('@supabase/supabase-js');
 const { verifyToken } = require('./auth');
 
@@ -8,38 +8,97 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Get all resources
+// ── Canonical category → keyword mapping used by /suggest ────
+const TOPIC_KEYWORDS = {
+  stress:        ['stress', 'overwhelm', 'pressure', 'burnout', 'overload'],
+  anxiety:       ['anxious', 'anxiety', 'panic', 'worry', 'nervous', 'scared', 'fear', 'dread'],
+  relationships: ['friend', 'family', 'relationship', 'breakup', 'lonely', 'loneliness', 'social', 'parent', 'partner', 'love'],
+  academic:      ['exam', 'test', 'study', 'grade', 'assignment', 'homework', 'academic', 'marks', 'score', 'semester', 'lecture', 'class', 'focus', 'concentrate'],
+};
+
+// ─────────────────────────────────────────────────────────────
+// GET /api/resources
+// Returns active resources, optionally filtered by category/type.
+// ─────────────────────────────────────────────────────────────
 router.get('/', verifyToken, async (req, res) => {
   try {
     const { category, type } = req.query;
 
     let query = supabase
       .from('resources')
-      .select('*')
+      .select('id, title, description, category, content_url, url, type, is_active, created_at')
+      .eq('is_active', true)
       .order('created_at', { ascending: false });
 
-    if (category) {
+    if (category && category !== 'all') {
       query = query.eq('category', category);
     }
-    if (type) {
+    if (type && type !== 'all') {
       query = query.eq('type', type);
     }
 
     const { data, error } = await query;
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ error: error.message });
+    }
 
-     if (error) {
-  console.error(error);
-  return res.status(500).json({ error: error.message });
-}
+    // Normalise: ensure every row has a usable link field
+    const normalised = (data || []).map(r => ({
+      ...r,
+      content_url: r.content_url || r.url || null,
+    }));
 
-    res.json({ resources: data || [] });
+    res.json({ resources: normalised });
   } catch (error) {
     console.error('Get resources error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Get resource by ID
+// ─────────────────────────────────────────────────────────────
+// GET /api/resources/suggest?topic=<stress|anxiety|relationships|academic>
+// Returns one random active resource matching the topic.
+// Called by the chatbot after each bot reply to attach a relevant card.
+// IMPORTANT: define BEFORE /:id so Express doesn't treat 'suggest' as an id.
+// ─────────────────────────────────────────────────────────────
+router.get('/suggest', verifyToken, async (req, res) => {
+  try {
+    const { topic } = req.query;
+
+    const VALID_CATEGORIES = ['stress', 'anxiety', 'relationships', 'academic'];
+    if (!topic || !VALID_CATEGORIES.includes(topic)) {
+      return res.json({ resource: null });
+    }
+
+    const { data, error } = await supabase
+      .from('resources')
+      .select('id, title, description, category, content_url, url, type')
+      .eq('category', topic)
+      .eq('is_active', true)
+      .limit(5);   // fetch a small pool and pick randomly for variety
+
+    if (error || !data?.length) {
+      return res.json({ resource: null });
+    }
+
+    // Random pick for variety across sessions
+    const pick = data[Math.floor(Math.random() * data.length)];
+    res.json({
+      resource: {
+        ...pick,
+        content_url: pick.content_url || pick.url || null,
+      },
+    });
+  } catch (error) {
+    console.error('Suggest resource error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// GET /api/resources/:id  — fetch single resource
+// ─────────────────────────────────────────────────────────────
 router.get('/:id', verifyToken, async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -60,41 +119,44 @@ router.get('/:id', verifyToken, async (req, res) => {
   }
 });
 
-// Create resource (counsellors only)
+// ─────────────────────────────────────────────────────────────
+// POST /api/resources  — create resource (counsellors + admins)
+// ─────────────────────────────────────────────────────────────
 router.post('/', verifyToken, async (req, res) => {
   try {
-    console.log('--- Authorization Check ---');
-    console.log('Request User:', req.user);
-    if (req.user.userType !== 'counsellor') {
-      console.warn('Access denied: User is not a counsellor. userType:', req.user.userType);
-      return res.status(403).json({ error: 'Only counsellors can create resources' });
+    if (req.user.userType !== 'counsellor' && req.user.userType !== 'admin') {
+      console.warn('Access denied: User is not a counsellor or admin. userType:', req.user.userType);
+      return res.status(403).json({ error: 'Only counsellors or admins can create resources' });
     }
 
-    const { title, description, type, category, url, content, tags } = req.body;
+    const { title, description, type, category, content_url, url, tags } = req.body;
 
-    if (!title || !type) {
-      return res.status(400).json({ error: 'Title and type are required' });
+    if (!title || !type || !category) {
+      return res.status(400).json({ error: 'title, type, and category are required' });
     }
+
+    const resolvedUrl = content_url || url || null;
 
     const { data, error } = await supabase
       .from('resources')
       .insert({
         title,
         description: description || null,
-        type, // 'article', 'video', 'podcast', 'toolkit'
-        category, // 'stress', 'exam-pressure', 'time-management', 'relationships', etc.
-        url: url || null,
-        content: content || null,
-        tags: tags || [],
-        created_by: req.user.userId
+        type,
+        category,
+        content_url: resolvedUrl,
+        url:         resolvedUrl,
+        tags:        tags || [],
+        is_active:   true,
+        created_by:  req.user.userId,
       })
       .select()
       .single();
 
     if (error) {
-  console.error(error);
-  return res.status(500).json({ error: error.message });
-}
+      console.error(error);
+      return res.status(500).json({ error: error.message });
+    }
 
     res.json({ resource: data });
   } catch (error) {
@@ -103,20 +165,45 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
-// Track resource view
+// ─────────────────────────────────────────────────────────────
+// PATCH /api/resources/:id  — toggle is_active (admin only)
+// ─────────────────────────────────────────────────────────────
+router.patch('/:id', verifyToken, async (req, res) => {
+  try {
+    if (req.user.userType !== 'admin') {
+      return res.status(403).json({ error: 'Admin only' });
+    }
+    const { is_active } = req.body;
+    const { data, error } = await supabase
+      .from('resources')
+      .update({ is_active, updated_at: new Date().toISOString() })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    if (error) throw error;
+    res.json({ resource: data });
+  } catch (error) {
+    console.error('Update resource error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// POST /api/resources/:id/view  — track resource engagement
+// ─────────────────────────────────────────────────────────────
 router.post('/:id/view', verifyToken, async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('resource_views')
       .insert({
         user_id: req.user.userId,
         resource_id: req.params.id
       });
 
-     if (error) {
-  console.error(error);
-  return res.status(500).json({ error: error.message });
-}
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ error: error.message });
+    }
 
     res.json({ success: true });
   } catch (error) {

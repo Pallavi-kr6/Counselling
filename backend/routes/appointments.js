@@ -654,6 +654,52 @@ router.put('/complete/:id', verifyToken, async (req, res) => {
   }
 });
 
+// Add secure session notes post-appointment (counsellor only)
+router.post('/:id/notes', verifyToken, async (req, res) => {
+  try {
+    const appointmentId = req.params.id;
+    const { notes_text, risk_level, next_action } = req.body;
+
+    if (req.user.userType !== 'counsellor') {
+      return res.status(403).json({ error: 'Only counsellors can add session notes' });
+    }
+
+    // Verify appointment exists and belongs to the counsellor
+    const { data: appointment, error: fetchError } = await supabase
+      .from('appointments')
+      .select('counsellor_id')
+      .eq('id', appointmentId)
+      .single();
+
+    if (fetchError || !appointment) {
+      return res.status(404).json({ error: 'Appointment not found' });
+    }
+
+    if (appointment.counsellor_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Not authorized to add notes to this session' });
+    }
+
+    const { data, error } = await supabase
+      .from('session_notes')
+      .insert({
+        session_id: appointmentId,
+        counsellor_id: req.user.userId,
+        notes_text,
+        risk_level: risk_level || 'low',
+        next_action: next_action || null
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json({ note: data });
+  } catch (error) {
+    console.error('Add session notes error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Get per-student session counts for a counsellor (all statuses)
 router.get('/counsellor/session-stats', verifyToken, async (req, res) => {
   try {

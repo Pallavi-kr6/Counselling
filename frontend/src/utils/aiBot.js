@@ -1,10 +1,17 @@
 import api from './api';
 
-export async function sendCounsellingMessage(message, history = []) {
+/**
+ * Sends a message to the AI counselling backend.
+ * Returns the full response object so callers can inspect:
+ *   - reply          {string}  — AI-generated response text
+ *   - crisisDetected {boolean} — true if the backend detected a crisis keyword
+ *   - crisisAlertId  {string|null} — UUID of the inserted crisis_alerts row
+ */
+export async function sendCounsellingMessage(message, history = [], isAnonymous = false) {
   try {
-    // History includes past conversation context to maintain memory
-    const response = await api.post('/chat', { message, history });
-    return response.data.reply;
+    const response = await api.post('/chat', { message, previousHistory: history, isAnonymous });
+    // Return full data object so AICounselling.js can read crisisDetected
+    return response.data;
   } catch (error) {
     if (error.response && error.response.data && error.response.data.error) {
       throw new Error(error.response.data.error);

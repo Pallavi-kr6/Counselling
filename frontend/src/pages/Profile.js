@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiUser, FiMail, FiBookOpen, FiClock, FiSmartphone, FiHash, FiCheckCircle, FiEdit3, FiTrendingUp } from 'react-icons/fi';
+import { FiUser, FiMail, FiBookOpen, FiClock, FiSmartphone, FiHash, FiCheckCircle, FiEdit3, FiTrendingUp, FiAlertTriangle } from 'react-icons/fi';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as LineTooltip, ResponsiveContainer } from 'recharts';
 import './Profile.css';
 
@@ -18,6 +18,7 @@ const Profile = () => {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
   const [success, setSuccess] = useState('');
   const [phq9Trend, setPhq9Trend] = useState([]);
 
@@ -73,6 +74,27 @@ const Profile = () => {
       console.error('Profile update error:', error);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleWithdrawConsent = async () => {
+    if (!window.confirm("Are you sure you want to withdraw consent? This will permanently anonymise your profile and delete your chat history. This action cannot be undone.")) {
+      return;
+    }
+    
+    setWithdrawing(true);
+    setSuccess('');
+    
+    try {
+      await api.post('/profiles/student/withdraw-consent');
+      setSuccess('Consent withdrawn. Your historical data has been anonymised.');
+      setTimeout(() => setSuccess(''), 5000);
+      fetchProfile(); // reload to show anonymised info
+    } catch (error) {
+      console.error('Withdraw consent error:', error);
+      alert('Failed to withdraw consent. Please try again.');
+    } finally {
+      setWithdrawing(false);
     }
   };
 
@@ -240,12 +262,36 @@ const Profile = () => {
                     whileTap={{ scale: 0.98 }}
                     type="submit" 
                     className="btn btn-save-profile" 
-                    disabled={saving}
+                    disabled={saving || withdrawing}
                   >
                     {saving ? 'Updating...' : 'Save Changes'}
                   </motion.button>
                 </div>
               </form>
+
+              {user.userType === 'student' && (
+                <div className="glass-card" style={{ marginTop: '2rem', border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(254, 242, 242, 0.4)' }}>
+                  <h3 style={{ color: '#ef4444', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <FiAlertTriangle /> Data Privacy & Consent
+                  </h3>
+                  <p style={{ color: '#7f1d1d', fontSize: '0.95rem', marginBottom: '1.5rem', lineHeight: '1.6' }}>
+                    You have the right to withdraw your consent for data processing at any time. Withdrawing consent will permanently anonymise your profile information and delete your chat history.
+                  </p>
+                  <button 
+                    onClick={handleWithdrawConsent}
+                    disabled={withdrawing}
+                    style={{ 
+                      background: 'none', border: '1px solid #ef4444', color: '#ef4444', 
+                      padding: '0.6rem 1.2rem', borderRadius: '8px', cursor: withdrawing ? 'not-allowed' : 'pointer',
+                      fontWeight: 600, transition: 'all 0.2s', opacity: withdrawing ? 0.7 : 1
+                    }}
+                    onMouseOver={e => !withdrawing && (e.currentTarget.style.background = '#fef2f2')}
+                    onMouseOut={e => !withdrawing && (e.currentTarget.style.background = 'none')}
+                  >
+                    {withdrawing ? 'Anonymising Data...' : 'Withdraw Consent & Anonymise Data'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </motion.div>

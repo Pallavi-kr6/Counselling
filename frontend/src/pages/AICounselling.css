@@ -286,6 +286,52 @@
   color: #999;
 }
 
+/* Profanity warning state — orange border on the wrapping form */
+.chat-form:has(.chat-input--warn) {
+  border-color: #fb923c;
+  box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.15);
+}
+
+/* Session-closed input — muted, not editable */
+.chat-input--closed {
+  cursor: not-allowed;
+  color: #9ca3af;
+}
+
+.chat-form:has(.chat-input--closed) {
+  border-color: #e5e7eb;
+  background: #f9fafb;
+  box-shadow: none;
+}
+
+/* ─── Idle check-in bubble ───────────────────────────────────
+   Centered pill — visually separate from user/bot messages.   */
+.message-wrapper.check-in {
+  align-self: center;
+  max-width: 90%;
+  justify-content: center;
+}
+
+.check-in-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+  border: 1px dashed #93c5fd;
+  border-radius: 20px;
+  padding: 9px 16px;
+  color: #1e40af;
+  font-size: 0.875rem;
+  font-style: italic;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
+  animation: softPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes softPulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08); }
+  50%       { box-shadow: 0 4px 16px rgba(59, 130, 246, 0.18); }
+}
+
 .send-btn {
   width: 40px;
   height: 40px;

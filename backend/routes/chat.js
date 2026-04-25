@@ -2,23 +2,35 @@ const express = require('express');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
 const { generateCounselingResponse } = require('../services/aiService');
+const { handleCrisisIfDetected } = require('../services/crisisService');
 const { verifyToken } = require('./auth');
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: Number(process.env.EMAIL_PORT) || 587,
-  secure: process.env.EMAIL_SECURE === 'true' || Number(process.env.EMAIL_PORT) === 465,
-  auth: {
-    user: process.env.EMAIL_USER || 'apikey',
-    pass: process.env.EMAIL_PASS || process.env.SENDGRID_API_KEY
-  }
-});
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+async function authenticateOptional(req, res, next) {
+  const authHeader = req.headers.authorization;
+  req.user = null;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next();
+  }
+  const token = authHeader.split(' ')[1];
+  try {
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Accommodate different token structures
+    req.user = {
+      userId: decoded.userId || decoded.id,
+      email: decoded.email,
+      userType: decoded.userType
+    };
+  } catch (err) {
+    // Ignored, anonymous behavior proceeds
+  }
+  next();
+}
 
 // Simple in-memory rate limiter: max 20 messages per IP per minute
 const rateLimitMap = new Map();
@@ -103,10 +115,10 @@ async function analyzeAndLogSentiment(userId, sessionId, userMessage) {
 // ─────────────────────────────────────────────
 router.post('/', rateLimit, async (req, res) => {
   try {
-    const { message, history: frontendHistory } = req.body;
+    const { message, previousHistory: frontendHistory, isAnonymous } = req.body;
 
-    if (!message || typeof message !== 'string' || message.trim() === '') {
-      return res.status(400).json({ error: 'Message cannot be empty.' });
+    if (!message) {
+      return res.status(400).json({ error: 'Message needed to proceed.' });
     }
 
     if (message.length > 2000) {
@@ -127,7 +139,12 @@ router.post('/', rateLimit, async (req, res) => {
       }
     }
 
-    const userId = userFromToken?.userId || userFromToken?.id || null;
+    let userId = userFromToken?.userId || userFromToken?.id || null;
+
+    if (isAnonymous) {
+      userId = null;
+      userFromToken = null;
+    }
 
     let dbHistory = [];
     let sessionId = null;
@@ -164,10 +181,20 @@ router.post('/', rateLimit, async (req, res) => {
       contextMessages = frontendHistory.slice(-20);
     }
 
-    // 3. Generate AI Response
+    // 3. Server-side crisis scan — runs BEFORE AI (catches any message the frontend missed)
+    const studentEmail = userFromToken?.email || null;
+    const { detected: crisisDetected, matched: crisisMatched, alertId, transcriptId } =
+      await handleCrisisIfDetected({
+        message: message.trim(),
+        studentId: userId,
+        studentEmail,
+        sessionId,   // ← pass the resolved sessionId for accurate history lookup
+      });
+
+    // 4. Generate AI Response
     const aiResponseText = await generateCounselingResponse(userId || 'anonymous', message.trim(), contextMessages);
 
-    // 4. Update memory in Supabase
+    // 5. Update memory in Supabase
     if (userId) {
       const newUserMessage = {
         role: 'user',
@@ -207,7 +234,7 @@ router.post('/', rateLimit, async (req, res) => {
         if (newSession) sessionId = newSession.id;
       }
 
-      // 5. Async Mood Analysis (Runs in background)
+      // 6. Async Mood Analysis (Runs in background)
       if (sessionId) {
         analyzeAndLogSentiment(userId, sessionId, message.trim()).catch(err => 
           console.warn('Background sentiment analysis failed:', err)
@@ -215,7 +242,13 @@ router.post('/', rateLimit, async (req, res) => {
       }
     }
 
-    return res.json({ reply: aiResponseText });
+    return res.json({
+      reply: aiResponseText,
+      // Inform the frontend when a crisis was server-detected (so it can show the intervention card)
+      crisisDetected:   crisisDetected  || false,
+      crisisAlertId:    alertId         || null,
+      crisisTranscriptId: transcriptId  || null,
+    });
   } catch (error) {
     console.error('AI Chat Route Error:', error.message);
     res.status(500).json({
@@ -228,59 +261,107 @@ router.post('/', rateLimit, async (req, res) => {
 // POST /api/chat/crisis-log
 // Endpoint to log client-side crisis detection and alert admin
 // ─────────────────────────────────────────────
-router.post('/crisis-log', verifyToken, async (req, res) => {
+// ─────────────────────────────────────────────
+// POST /api/chat/crisis-log
+// Called by the frontend when it independently detects a crisis keyword.
+// The crisisService handles DB insert + notify — ensuring no duplication
+// if the main /api/chat route already handled it server-side.
+router.post('/crisis-log', authenticateOptional, async (req, res) => {
   try {
-    const { message } = req.body;
-    const userId = req.user.userId || req.user.id;
+    const { message, alreadyHandled, isAnonymous } = req.body;
+    let userId      = req.user?.userId || req.user?.id || null;
+    let studentEmail = req.user?.email || null;
+
+    if (isAnonymous) {
+      userId = null;
+      studentEmail = null;
+    }
 
     if (!message) return res.status(400).json({ error: 'Message payload required' });
 
-    // 1. Log to database
-    const { error: dbError } = await supabase.from('crisis_flags').insert({
-      user_id: userId,
-      message: message
+    // If the main chat route already handled this (server-side detection),
+    // skip re-inserting to avoid duplicate rows — just acknowledge.
+    if (alreadyHandled) {
+      return res.json({ success: true, message: 'Crisis already logged by server.' });
+    }
+
+    // Otherwise run the full crisis pipeline
+    const { alertId, matched } = await handleCrisisIfDetected({
+      message,
+      studentId: userId,
+      studentEmail,
     });
 
-    if (dbError) {
-      console.error('Crisis log DB error:', dbError);
-    }
+    // Also insert into legacy crisis_flags for backwards compatibility
+    await supabase.from('crisis_flags').insert({ user_id: userId, message }).catch(() => {});
 
-    // 2. Fetch User Email to trace
-    const { data: user } = await supabase.from('users').select('email').eq('id', userId).single();
-    
-    // 3. Send email to admin
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@counselling.college.edu';
-    
-    const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
-      to: adminEmail,
-      subject: `URGENT: Crisis Keyword Detected in AI Chat`,
-      html: `
-        <div style="font-family: Arial, sans-serif; border: 2px solid #e74c3c; padding: 20px; border-radius: 8px;">
-          <h2 style="color: #e74c3c;">Critical Alert: Self-Harm/Crisis Intent Detected</h2>
-          <p><strong>Student ID / Token:</strong> ${userId}</p>
-          <p><strong>Student Email:</strong> ${user?.email || 'Anonymous'}</p>
-          <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-          <div style="background: #f5f7fa; padding: 15px; margin-top: 15px; border-left: 4px solid #e74c3c;">
-            <strong>Flagged Message:</strong><br/>
-            "${message}"
-          </div>
-          <p style="margin-top: 20px;">Please check the admin insights dashboard or student profile immediately. The student has been shown the emergency helpline intervention card.</p>
-        </div>
-      `
-    };
-
-    try {
-      await transporter.sendMail(mailOptions);
-      console.log('🚨 Admin crisis email sent successfully.');
-    } catch (mailErr) {
-      console.error('Failed to send admin crisis email:', mailErr);
-    }
-
-    res.json({ success: true, message: 'Crisis successfully logged and reported.' });
+    res.json({
+      success: true,
+      message: 'Crisis logged and reported.',
+      alertId,
+      keywordsMatched: matched,
+    });
   } catch (error) {
     console.error('Crisis log endpoint error:', error);
     res.status(500).json({ error: 'Server error parsing crisis' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// POST /api/chat/soft-alert
+// Logs repeated profanity / boundary violations to Supabase.
+// This allows counsellors to review flagged users later.
+// ─────────────────────────────────────────────────────────────
+router.post('/soft-alert', authenticateOptional, async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: 'Message required' });
+
+    const userId = req.user?.userId || null;
+
+    const { error } = await supabase
+      .from('soft_alerts')
+      .insert({
+        user_id: userId,
+        flagged_message: message,
+        reason: 'Profanity rules repeatedly violated (>= 3 warnings)',
+        reviewed: false,
+      });
+
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Soft alert log error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// POST /api/chat/pre-chat-mood
+// Logs the user's initial pre-chat emoji selection (1-5 scale)
+// to the mood_logs table as requested.
+// ─────────────────────────────────────────────────────────────
+router.post('/pre-chat-mood', authenticateOptional, async (req, res) => {
+  try {
+    const { moodScore, sessionId } = req.body;
+    if (!moodScore) return res.status(400).json({ error: 'moodScore required' });
+
+    const userId = req.user?.userId || null;
+
+    const { error } = await supabase
+      .from('mood_logs')
+      .insert({
+        user_id: userId,
+        session_id: sessionId || null,
+        mood_score: moodScore,  // 1-5 explicitly requested
+        label: 'pre-chat check-in',
+      });
+
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Pre-chat mood log error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

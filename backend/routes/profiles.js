@@ -281,7 +281,45 @@ router.get('/counsellor/availability/:userId', verifyToken, async (req, res) => 
   }
 });
 
-// Toggle counsellor availability
+// Toggle counsellor real-time online status and duty cycle bounding
+router.put('/counsellor/status/:userId/toggle', verifyToken, async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const { isAvailable, availableHours = 8 } = req.body;
+
+    // Check auth
+    if (req.user.userType !== 'counsellor' && req.user.userType !== 'admin' && req.user.userId !== userId) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    let availableUntil = null;
+    if (isAvailable) {
+      const d = new Date();
+      d.setHours(d.getHours() + availableHours);
+      availableUntil = d.toISOString();
+    }
+
+    const { data, error } = await supabase
+      .from('counsellor_profiles')
+      .update({ 
+        is_available: isAvailable, 
+        available_until: availableUntil,
+        is_online: isAvailable // backwards compatibility
+      })
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json({ isAvailable: data.is_available, availableUntil: data.available_until, isOnline: data.is_online });
+  } catch (error) {
+    console.error('Toggle counsellor status error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// (Deprecated) Legacy availability toggle - kept for backwards compat but shouldn't be used for live status
 router.put('/counsellor/availability/:userId/toggle', verifyToken, async (req, res) => {
   try {
     const userId = req.params.userId;
@@ -317,6 +355,86 @@ router.put('/counsellor/availability/:userId/toggle', verifyToken, async (req, r
     res.json({ availability: data || [] });
   } catch (error) {
     console.error('Toggle counsellor availability error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// CONSENT ENDPOINTS
+// ─────────────────────────────────────────────────────────────
+
+// Get student consent
+router.get('/student/:id/consent', verifyToken, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('student_consents')
+      .select('*')
+      .eq('student_id', req.params.id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
+
+    res.json({ consent: data || null });
+  } catch (error) {
+    console.error('Get student consent error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Provide student consent
+router.post('/student/consent', verifyToken, async (req, res) => {
+  try {
+    if (req.user.userType !== 'student') {
+      return res.status(403).json({ error: 'Only students can provide consent' });
+    }
+
+    const { data, error } = await supabase
+      .from('student_consents')
+      .insert({ student_id: req.user.userId, consent_version: 'v1.0' })
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') { // Unique violation
+        return res.json({ success: true, message: 'Consent already provided' });
+      }
+      throw error;
+    }
+
+    res.json({ consent: data });
+  } catch (error) {
+    console.error('Provide consent error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Withdraw student consent
+router.post('/student/withdraw-consent', verifyToken, async (req, res) => {
+  try {
+    if (req.user.userType !== 'student') {
+      return res.status(403).json({ error: 'Only students can withdraw consent' });
+    }
+
+    // Call the RPC function to anonymise data
+    const { error: rpcError } = await supabase.rpc('anonymise_student_data', {
+      target_user_id: req.user.userId
+    });
+
+    if (rpcError) {
+      // Fallback if RPC isn't created: manually do it
+      await supabase.from('student_profiles').update({
+        name: 'Anonymised User', contact_info: null, gender: null, course: null, year: null
+      }).eq('user_id', req.user.userId);
+      await supabase.from('student_consents').delete().eq('student_id', req.user.userId);
+      await supabase.from('chat_sessions').delete().eq('student_id', req.user.userId);
+      await supabase.from('crisis_alerts').delete().eq('student_id', req.user.userId);
+    }
+
+    res.json({ success: true, message: 'Consent withdrawn and data anonymised successfully' });
+  } catch (error) {
+    console.error('Withdraw consent error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

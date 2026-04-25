@@ -91,4 +91,13 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
   startCronJobs();
+
+  // Start the daily mood analysis cron job
+  const { startMoodAnalysisJob } = require('./services/moodAnalysisJob');
+  startMoodAnalysisJob();
+
+  // Start the monthly SVG/PDF report cron job
+  const { startMonthlyReportJob } = require('./jobs/monthlyReportJob');
+  startMonthlyReportJob();
+
 });
