@@ -235,7 +235,7 @@ function ConsentScreen({ onConsent }) {
 }
 
 const AICounselling = () => {
-  const [messages, setMessages] = useState(() => {
+  const [chatHistory, setChatHistory] = useState(() => {
     const saved = localStorage.getItem('aiCounsellingChat');
     return saved ? JSON.parse(saved) : [];
   });
@@ -280,17 +280,17 @@ const AICounselling = () => {
   const checkInTimerRef  = useRef(null);
   const closeTimerRef    = useRef(null);
   const checkInSentRef   = useRef(false);  // prevent duplicate check-in bubbles
-  const messagesRef      = useRef(messages); // always-current messages snapshot
+  const chatHistoryRef = useRef(chatHistory); // always-current messages snapshot
 
   // Keep messagesRef in sync so timer callbacks can read current messages
   useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
+    chatHistoryRef.current = chatHistory;
+  }, [chatHistory]);
 
   useEffect(() => {
-    localStorage.setItem('aiCounsellingChat', JSON.stringify(messages));
+    localStorage.setItem('aiCounsellingChat', JSON.stringify(chatHistory));
     scrollToBottom();
-  }, [messages, loading]);
+  }, [chatHistory, loading]);
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -311,7 +311,7 @@ const AICounselling = () => {
 
   const resetIdleTimer = () => {
     // Only run idle timer mid-conversation (≥1 message)
-    if (messagesRef.current.length === 0) return;
+    if (chatHistoryRef.current.length === 0) return;
 
     clearIdleTimers();
     checkInSentRef.current = false;
@@ -321,7 +321,7 @@ const AICounselling = () => {
       if (checkInSentRef.current) return;
       checkInSentRef.current = true;
 
-      setMessages(prev => {
+      setChatHistory(prev => {
         // Don't add a second check-in if one already exists
         if (prev.some(m => m.role === 'check-in')) return prev;
         return [...prev, { ...CHECK_IN_MESSAGE, id: `check-in-${Date.now()}` }];
@@ -337,7 +337,7 @@ const AICounselling = () => {
     resetIdleTimer();
     return clearIdleTimers; // cleanup on unmount
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages.length, isSessionClosed]);
+  }, [chatHistory.length, isSessionClosed]);
 
   // Reset on tab/window focus (user returned)
   useEffect(() => {
@@ -364,7 +364,7 @@ const AICounselling = () => {
     if (!input.trim() || loading || isSessionClosed) return;
 
     // Any send counts as activity — reset idle timer and strip check-in bubble
-    setMessages(prev => prev.filter(m => m.role !== 'check-in'));
+    setChatHistory(prev => prev.filter(m => m.role !== 'check-in'));
     checkInSentRef.current = false;
     resetIdleTimer();
 
@@ -385,14 +385,14 @@ const AICounselling = () => {
     }
     setProfanityWarning(false);
 
-    const userMessage = { role: 'user', text: userText, id: Date.now() };
+    const userMessage = { role: 'user', content: userText, id: Date.now() };
     const lowerText   = userText.toLowerCase();
 
     // ── Client-side crisis pre-check (instant UX) ─────────────────────────
     const clientCrisis = CRISIS_KEYWORDS.some(kw => lowerText.includes(kw));
 
     if (clientCrisis) {
-      setMessages(prev => [...prev, userMessage]);
+      setChatHistory(prev => [...prev, userMessage]);
       setInput('');
       setIsCrisis(true);
       // Fire to backend; pass alreadyHandled=false so the server logs it.
@@ -402,8 +402,8 @@ const AICounselling = () => {
     }
 
     // ── Normal flow ────────────────────────────────────────────────────────
-    const currentHistory = [...messages, userMessage];
-    setMessages(currentHistory);
+    const currentHistory = [...chatHistory, userMessage];
+    setChatHistory(currentHistory);
     setInput('');
     setError('');
     setLoading(true);
@@ -424,8 +424,8 @@ const AICounselling = () => {
 
       const replyText  = typeof reply === 'string' ? reply : reply?.reply || reply?.text || '';
       const botId      = Date.now() + 1;
-      const botMessage = { role: 'bot', text: replyText, id: botId, suggestedResource: null };
-      setMessages(prev => [...prev, botMessage]);
+      const botMessage = { role: 'bot', content: replyText, id: botId, suggestedResource: null };
+      setChatHistory(prev => [...prev, botMessage]);
 
       // ── Non-blocking resource suggestion ──────────────────────────────
       // Detect topic from the user's words; fetch one matching resource and
@@ -435,7 +435,7 @@ const AICounselling = () => {
         api.get(`/resources/suggest?topic=${encodeURIComponent(topic)}`)
           .then(res => {
             if (res.data?.resource) {
-              setMessages(prev => prev.map(m =>
+              setChatHistory(prev => prev.map(m =>
                 m.id === botId ? { ...m, suggestedResource: res.data.resource } : m
               ));
             }
@@ -445,10 +445,10 @@ const AICounselling = () => {
     } catch (err) {
       const errorMessage = {
         role: 'error',
-        text: err.message || "I'm having trouble connecting right now. Can you try again?",
+        content: err.message || "I'm having trouble connecting right now. Can you try again?",
         id: Date.now() + 1,
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setChatHistory(prev => [...prev, errorMessage]);
     } finally {
       setLoading(false);
     }
@@ -459,7 +459,7 @@ const AICounselling = () => {
       clearIdleTimers();
       checkInSentRef.current = false;
       setIsSessionClosed(false);
-      setMessages([]);
+      setChatHistory([]);
       localStorage.removeItem('aiCounsellingChat');
     }
   };
@@ -510,7 +510,7 @@ const AICounselling = () => {
         {/* Chat Area */}
         <div className="chat-window">
           <AnimatePresence>
-            {!preChatMoodDone && messages.length === 0 ? (
+            {!preChatMoodDone && chatHistory.length === 0 ? (
               <motion.div
                 initial={{ opacity:0, scale:0.95 }}
                 animate={{ opacity:1, scale:1 }}
@@ -555,7 +555,7 @@ const AICounselling = () => {
                   ))}
                 </div>
               </motion.div>
-            ) : messages.length === 0 ? (
+            ) : chatHistory.length === 0 ? (
               <motion.div 
                 className="chat-empty-state"
                 initial={{ opacity: 0 }}
@@ -578,7 +578,7 @@ const AICounselling = () => {
               </motion.div>
             ) : (
               <div className="messages-list">
-                {messages.map((msg) => {
+                {chatHistory.map((msg) => {
                   // ── Check-in bubble — distinct centered style ──────────
                   if (msg.role === 'check-in') {
                     return (
@@ -590,7 +590,7 @@ const AICounselling = () => {
                       >
                         <div className="check-in-bubble">
                           <FiClock size={13} style={{ flexShrink: 0, opacity: 0.7 }} />
-                          <span>{msg.text}</span>
+                          <span>{msg.content || msg.text}</span>
                         </div>
                       </motion.div>
                     );
@@ -608,7 +608,7 @@ const AICounselling = () => {
                           <div className="message-avatar bot-avatar"><FiHeart size={14} /></div>
                         )}
                         <div className={`message-bubble ${msg.role}`}>
-                          {msg.text}
+                          {msg.content || msg.text}
                         </div>
                       </motion.div>
                       {msg.role === 'bot' && msg.suggestedResource && (
@@ -729,20 +729,20 @@ const AICounselling = () => {
                 setInput(e.target.value);
                 if (profanityWarning) setProfanityWarning(false);
                 // Typing counts as activity — strip check-in and reset timer
-                if (messagesRef.current.some(m => m.role === 'check-in')) {
-                  setMessages(prev => prev.filter(m => m.role !== 'check-in'));
+                if (chatHistoryRef.current.some(m => m.role === 'check-in')) {
+                  setChatHistory(prev => prev.filter(m => m.role !== 'check-in'));
                   checkInSentRef.current = false;
                   resetIdleTimer();
                 }
               }}
-              placeholder={!preChatMoodDone && messages.length === 0 ? 'Select a mood above to start' : isSessionClosed ? 'Session closed — clear chat to start again' : 'Type your message here...'}
-              disabled={loading || isSessionClosed || (!preChatMoodDone && messages.length === 0)}
+              placeholder={!preChatMoodDone && chatHistory.length === 0 ? 'Select a mood above to start' : isSessionClosed ? 'Session closed — clear chat to start again' : 'Type your message here...'}
+              disabled={loading || isSessionClosed || (!preChatMoodDone && chatHistory.length === 0)}
               className={`chat-input${profanityWarning ? ' chat-input--warn' : ''}${isSessionClosed ? ' chat-input--closed' : ''}`}
             />
             <button 
               type="submit" 
               className={`send-btn ${input.trim() && !isSessionClosed && preChatMoodDone ? 'active' : ''}`}
-              disabled={loading || !input.trim() || isCrisis || isSessionClosed || (!preChatMoodDone && messages.length === 0)}
+              disabled={loading || !input.trim() || isCrisis || isSessionClosed || (!preChatMoodDone && chatHistory.length === 0)}
             >
               <FiSend size={18} />
             </button>

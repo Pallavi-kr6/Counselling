@@ -115,7 +115,7 @@ async function analyzeAndLogSentiment(userId, sessionId, userMessage) {
 // ─────────────────────────────────────────────
 router.post('/', rateLimit, async (req, res) => {
   try {
-    const { message, previousHistory: frontendHistory, isAnonymous } = req.body;
+    const { message, history: frontendHistory, isAnonymous } = req.body;
 
     if (!message) {
       return res.status(400).json({ error: 'Message needed to proceed.' });
@@ -175,7 +175,7 @@ router.post('/', rateLimit, async (req, res) => {
     if (recentDbHistory.length > 0) {
       contextMessages = recentDbHistory.map(m => ({
         role: m.role, // 'user' or 'assistant'
-        text: m.content
+        content: m.content
       }));
     } else if (Array.isArray(frontendHistory)) {
       contextMessages = frontendHistory.slice(-20);

@@ -1,66 +1,72 @@
 const Groq = require('groq-sdk');
 
-// System prompt used across all providers
-const SYSTEM_PROMPT = `You are a supportive, empathetic, and professional counselling assistant for college students, trained in Cognitive Behavioral Therapy (CBT) principles.
-Your goal is to provide a safe, non-judgmental space while guiding the user toward psychological flexibility.
-Follow these strict guidelines:
-1. ALWAYS validate the user's emotions first before attempting to problem-solve or offer strategies.
-2. Ask exactly ONE open-ended question at a time to help them explore their thoughts and feelings. Avoid asking multiple questions.
-3. NEVER provide medical, psychological, or psychiatric diagnoses under any circumstances.
-4. Keep responses warm, concise, and conversational (2-4 sentences max).
-5. If the user mentions words like "suicide", "kill myself", "harm myself", or severe despair, IMMEDIATELY halt the conversation and instruct them: "Please speak to your counselor or reach out to emergency services immediately."`;
+const SYSTEM_PROMPT = `You are a warm, empathetic counselling assistant for college students. You are having a real back-and-forth conversation — NOT delivering scripted therapy lines.
 
-// Groq models to try in order (failover chain)
+STRICT RULES:
+1. Read the ENTIRE conversation history above before responding. Reference what the user has already told you.
+2. NEVER repeat a response you already gave in this conversation. Check the history.
+3. If the user already told you what is stressing them, DO NOT ask them again what is causing stress.
+4. Validate emotions first, then respond to the SPECIFIC thing they said.
+5. Keep responses to 2-3 sentences max. Ask only ONE follow-up question.
+6. Remember the user's name, subjects, problems — anything they share.
+7. Sound like a caring friend, not a helpline script.
+8. NEVER diagnose. NEVER give medical advice.`;
+
 const GROQ_MODELS = [
-  'llama3-8b-8192',
+  'llama-3.3-70b-versatile',
   'llama3-70b-8192',
-  'mixtral-8x7b-32768',
-  'gemma-7b-it',
+  'llama3-8b-8192',
 ];
 
-/**
- * Try Groq with multiple models until one works.
- */
 async function tryGroq(messages) {
-  if (!process.env.GROQ_API_KEY) return null;
+  if (!process.env.GROQ_API_KEY) {
+    console.error('❌ GROQ_API_KEY is not set in environment variables!');
+    return null;
+  }
 
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
   for (const model of GROQ_MODELS) {
     try {
+      console.log(`🔄 Trying Groq model: ${model}`);
       const res = await groq.chat.completions.create({
         model,
         messages,
-        temperature: 0.7,
+        temperature: 0.75,
         max_tokens: 300,
+        frequency_penalty: 0.6,
       });
-      console.log(`✅ Groq responded with model: ${model}`);
-      return res.choices[0].message.content;
+      const reply = res.choices[0].message.content;
+      console.log(`✅ Groq success with model: ${model}`);
+      console.log(`📤 Reply preview: ${reply.slice(0, 80)}...`);
+      return reply;
     } catch (err) {
-      console.warn(`⚠️ Groq model ${model} failed: ${err.message}`);
-      // Continue to next model
+      // Log the FULL error so you can see what's actually failing
+      console.error(`❌ Groq model ${model} failed:`, err.message);
+      if (err.status) console.error(`   HTTP Status: ${err.status}`);
+      if (err.error) console.error(`   Error detail:`, JSON.stringify(err.error));
     }
   }
 
-  return null; // All Groq models failed
+  console.error('❌ ALL Groq models failed. Check your API key and network.');
+  return null;
 }
 
-/**
- * Main function: try Groq → smart mock fallback
- */
 async function generateCounselingResponse(userId, userMessage, contextMessages = []) {
-  const formattedHistory = contextMessages.map(msg => ({
-    role: msg.role === 'bot' ? 'assistant' : 'user',
-    content: msg.text,
-  }));
+  // Normalize history — ensure only valid roles reach Groq
+  const formattedHistory = contextMessages
+    .filter(msg => msg.role === 'user' || msg.role === 'assistant' || msg.role === 'bot')
+    .map(msg => ({
+      role: msg.role === 'bot' ? 'assistant' : msg.role,
+      content: msg.content || '',
+    }))
+    .filter(msg => msg.content.trim() !== '');
 
-  // Hardcoded Crisis Detection Check (Before API Call)
+  // Crisis check — hardcoded safety net before any API call
   const lowerMsg = userMessage.toLowerCase();
   const crisisKeywords = ['suicide', 'kill myself', 'end my life', 'want to die', 'harm myself', 'self-harm', 'cut myself'];
-  const hasCrisis = crisisKeywords.some(keyword => lowerMsg.includes(keyword));
-
-  if (hasCrisis) {
-    return "I am deeply concerned about what you're sharing. Your safety is the absolute priority right now. Please speak to your counselor immediately or reach out to emergency services/crisis lifeline (iCall at 9152987821). You do not have to go through this alone.";
+  if (crisisKeywords.some(kw => lowerMsg.includes(kw))) {
+    return "I'm deeply concerned about what you're sharing. Your safety is the absolute priority right now. Please speak to your counselor immediately or call iCall at 9152987821. You do not have to go through this alone.";
   }
 
   const messages = [
@@ -69,58 +75,16 @@ async function generateCounselingResponse(userId, userMessage, contextMessages =
     { role: 'user', content: userMessage },
   ];
 
-  // 1. Try Groq (all models)
+  console.log(`📨 Sending to Groq — history length: ${formattedHistory.length} messages`);
+
   const groqReply = await tryGroq(messages);
+
   if (groqReply) return groqReply;
 
-  // 2. Final fallback → smart mock
-  console.warn('⚠️ All AI providers failed. Using smart mock response.');
-  return getMockResponse(userMessage);
+  // If Groq genuinely failed, return an honest error message
+  // NOT a fake scripted response that hides the real problem
+  console.error('⚠️ Groq unavailable — returning error message to user');
+  return "I'm having a little trouble connecting right now. Please try again in a moment — I'm here for you. 💙";
 }
 
-/**
- * Context-aware fallback responses — always works, never throws.
- */
-function getMockResponse(message) {
-  const msg = (message || '').toLowerCase();
-
-  if (
-    msg.includes('self-harm') || msg.includes('suicide') ||
-    msg.includes('end my life') || msg.includes('kill myself') ||
-    msg.includes('want to die')
-  ) {
-    return "I'm really concerned about what you've shared. Please reach out to a crisis line immediately — iCall at 9152987821 (India) is available to help. You don't have to face this alone, and professional support is just a call away. 💙";
-  }
-  if (msg.includes('stress') || msg.includes('overwhelm') || msg.includes('pressure')) {
-    return "I hear you — feeling overwhelmed is really tough. Try taking 5 slow deep breaths right now: inhale for 4 counts, hold for 4, exhale for 4. Would you like to talk about what's been causing you stress?";
-  }
-  if (msg.includes('anxious') || msg.includes('anxiety') || msg.includes('panic') || msg.includes('worried')) {
-    return "Anxiety can feel so consuming. You're safe right now. A grounding technique that often helps: name 5 things you can see, 4 you can touch, 3 you can hear. Would you like to share more about what's on your mind?";
-  }
-  if (msg.includes('lonely') || msg.includes('alone') || msg.includes('isolated')) {
-    return "Feeling lonely can be really painful, especially in a busy college environment. I'm here with you right now. What's been making you feel this way — is it a specific situation or has it been building for a while?";
-  }
-  if (msg.includes('sleep') || msg.includes('insomnia') || msg.includes("can't sleep")) {
-    return "Poor sleep takes a real toll on everything. A few things that help: avoid screens 30 minutes before bed, keep a consistent sleep time, and try writing down tomorrow's worries so your mind can rest. Would you like more sleep tips?";
-  }
-  if (msg.includes('sad') || msg.includes('depressed') || msg.includes('unhappy') || msg.includes('cry')) {
-    return "I'm sorry you're feeling this way — your feelings are completely valid. Sometimes it helps to just let yourself feel it rather than push it away. I'm here to listen. Can you tell me more about what's been going on?";
-  }
-  if (msg.includes('angry') || msg.includes('frustrated') || msg.includes('mad')) {
-    return "It sounds like you're feeling really frustrated right now. That's completely understandable. Would it help to talk through what happened, or would you prefer some quick techniques to cool down?";
-  }
-  if (msg.includes('exam') || msg.includes('study') || msg.includes('fail') || msg.includes('grade') || msg.includes('assignment')) {
-    return "Academic pressure can feel crushing. Remember: one exam or grade doesn't define your worth or future. Let's break it down — what specifically is worrying you most right now?";
-  }
-  if (msg.includes('friend') || msg.includes('relationship') || msg.includes('breakup') || msg.includes('fight')) {
-    return "Relationship difficulties can be really draining emotionally. It sounds like something happened that hurt you. Would you like to share a bit more about the situation?";
-  }
-  if (msg.includes('hello') || msg.includes('hi') || msg.includes('hey') || msg.includes('start') || msg === '') {
-    return "Hello! I'm here to listen and support you. How are you feeling today? Feel free to share whatever's on your mind — there's no judgment here. 💙";
-  }
-  return "I'm here for you and I'm listening. Can you tell me a little more about how you're feeling right now? I want to make sure I understand what you're going through.";
-}
-
-module.exports = {
-  generateCounselingResponse,
-};
+module.exports = { generateCounselingResponse };

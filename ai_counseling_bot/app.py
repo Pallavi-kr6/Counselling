@@ -225,9 +225,10 @@ Message:
 """
 
     response = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
+        model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.0
+        temperature=0.75,
+        frequency_penalty=0.6
     )
 
     return response.choices[0].message.content
@@ -235,7 +236,7 @@ Message:
 
 
 # LLM Response
-def generate_response(user_input, risk_level):
+def generate_response(user_input, risk_level, history=[]):
 
     if risk_level == "high":
         return (
@@ -248,9 +249,15 @@ def generate_response(user_input, risk_level):
         )
     
     emotion_conflict = detect_emotion_conflict(user_input)
+    # emotion_data = analyze_emotion_intent(user_input)
+    emotion_data = "stressed" if risk_level == "medium" else "distressed" if risk_level == "high" else "neutral"
 
 
-    ctx = st.session_state.user_context
+    ctx = {
+        "academic_focus": next((m["content"] for m in history if "exam" in m.get("content","").lower()), None),
+        "current_concern": "emotional stress" if risk_level in ["medium","high"] else None,
+        "risk_level": risk_level
+    }
     faq_snippet = retrieve_relevant_faq(user_input)
     gov_guidance = retrieve_gov_guidance(user_input)
 
@@ -290,6 +297,9 @@ STRICT RULES:
 - Do NOT diagnose.
 - If unsure, ask the user.
 - Validate emotions before giving guidance.
+- Remember everything the user shares in this conversation including their name, subject, and concerns.
+- Never repeat a response you already gave. Vary your wording and follow up on prior messages.
+- Keep replies to 2-3 sentences unless the situation requires more. Ask only ONE question at a time.
 
 You are a compassionate AI counselling assistant for students. You must NEVER respond to abusive, profane, or offensive language — instead, gently remind the student to maintain respectful communication. If a student expresses thoughts related to self-harm, suicide, hopelessness, or crisis, do NOT engage further on the topic. Immediately respond with: "I care about your wellbeing. I'm alerting a counsellor right now — please hold on, help is on the way." Then trigger an emergency alert internally.
 
@@ -297,25 +307,21 @@ Known User Context:
 - Academic focus: {ctx['academic_focus']}
 - Current concern: {ctx['current_concern']}
 - Risk level: {ctx['risk_level']}
-
-Grounded Knowledge (from datasets & public resources):
-{grounding_text}
-
-Use the grounded knowledge to guide your response.
+Detected emotion/intent: {emotion_data}
 """
 
     messages = [{"role": "system", "content": system_prompt}]
-
-    # short-term memory
-    for msg in st.session_state.messages[-4:]:
-        messages.append({"role": msg["role"], "content": msg["content"]})
-
+    for msg in history[-10:]:
+        messages.append({"role": msg.get("role", "user"), "content": msg.get("content", "")})
     messages.append({"role": "user", "content": user_input})
+    # Move grounding to a separate final user-turn note so it doesn't bury the rules:
+    messages.append({"role": "system", "content": f"[Context reminder] {grounding_text[:800]}"})
 
     response = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
+        model="llama-3.3-70b-versatile",
         messages=messages,
-        temperature=0.5
+        temperature=0.75,
+        frequency_penalty=0.6
     )
 
     return response.choices[0].message.content
@@ -346,7 +352,7 @@ if user_input:
     risk = detect_risk(user_input)
     update_user_context(user_input, risk)
 
-    reply = generate_response(user_input, risk)
+    reply = generate_response(user_input, risk, history=st.session_state.messages)
 
     st.session_state.messages.append(
         {"role": "assistant", "content": reply}

@@ -12,10 +12,10 @@ const localEnv = path.resolve(__dirname, '.env');
  
 if (fs.existsSync(rootEnv)) {
   console.log('Loading env from root:', rootEnv);
-  dotenv.config({ path: rootEnv });
+  dotenv.config({ path: rootEnv, override: true });
 } else if (fs.existsSync(localEnv)) {
   console.log('Loading env from local:', localEnv);
-  dotenv.config({ path: localEnv });
+  dotenv.config({ path: localEnv, override: true });
 } else {
   console.warn('No .env file found at', rootEnv, 'or', localEnv);
 }

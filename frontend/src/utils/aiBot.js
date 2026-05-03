@@ -9,7 +9,14 @@ import api from './api';
  */
 export async function sendCounsellingMessage(message, history = [], isAnonymous = false) {
   try {
-    const response = await api.post('/chat', { message, previousHistory: history, isAnonymous });
+    const normalizedHistory = history
+      .filter(m => m.role === 'user' || m.role === 'bot' || m.role === 'assistant')
+      .map(m => ({
+        role: m.role === 'bot' ? 'assistant' : m.role,
+        content: m.content || m.text || ''
+      }));
+
+    const response = await api.post('/chat', { message, history: normalizedHistory, isAnonymous });
     // Return full data object so AICounselling.js can read crisisDetected
     return response.data;
   } catch (error) {
