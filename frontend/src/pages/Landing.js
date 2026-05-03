@@ -7,24 +7,45 @@ import './Landing.css';
 const professionals = [
   { 
     id: 1, 
-    name: 'Dr. Sarah Smith', 
-    role: 'Clinical Psychologist', 
-    image: '/landing/prof1.png',
-    specialty: 'Anxiety & Stress'
+    name: 'Dr. V.M Gayathri', 
+    role: 'Associate Professor', 
+    image: 'https://via.placeholder.com/400x500?text=Dr.+V.M+Gayathri',
+    specialty: 'Networking & Comm (NWC)'
   },
   { 
     id: 2, 
-    name: 'Dr. Michael Chen', 
-    role: 'Counselling Specialist', 
-    image: '/landing/prof2.png',
-    specialty: 'Academic Performance'
+    name: 'Dr. A.Helen Victoria', 
+    role: 'Associate Professor', 
+    image: 'https://via.placeholder.com/400x500?text=Dr.+A.Helen+Victoria',
+    specialty: 'Networking & Comm (NWC)'
   },
   { 
     id: 3, 
-    name: 'Ms. Emily Rodriguez', 
-    role: 'Wellness Coach', 
-    image: '/landing/prof3.png',
-    specialty: 'Mindfulness & Growth'
+    name: 'Dr. P.Supraja', 
+    role: 'Associate Professor', 
+    image: 'https://via.placeholder.com/400x500?text=Dr.+P.Supraja',
+    specialty: 'Value Education Cell'
+  },
+  { 
+    id: 4, 
+    name: 'Dr. A Arun', 
+    role: 'Associate Professor', 
+    image: 'https://via.placeholder.com/400x500?text=Dr.+A+Arun',
+    specialty: 'Networking & Comm (NWC)'
+  },
+  { 
+    id: 5, 
+    name: 'Dr. M.Vaishnavi Moorthy', 
+    role: 'Associate Professor', 
+    image: 'https://via.placeholder.com/400x500?text=Dr.+M.Vaishnavi+Moorthy',
+    specialty: 'Networking & Comm (NWC)'
+  },
+  { 
+    id: 6, 
+    name: 'Dr. Lakshmi Narayan', 
+    role: 'Associate Professor', 
+    image: 'https://via.placeholder.com/400x500?text=Dr.+Lakshmi+Narayan',
+    specialty: 'Networking & Comm (NWC)'
   }
 ];
 
