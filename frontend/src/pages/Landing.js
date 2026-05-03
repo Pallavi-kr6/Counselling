@@ -9,42 +9,42 @@ const professionals = [
     id: 1, 
     name: 'Dr. V.M Gayathri', 
     role: 'Associate Professor', 
-    image: 'https://via.placeholder.com/400x500?text=Dr.+V.M+Gayathri',
+    image: '/counsellors/gayathri.png',
     specialty: 'Networking & Comm (NWC)'
   },
   { 
     id: 2, 
     name: 'Dr. A.Helen Victoria', 
     role: 'Associate Professor', 
-    image: 'https://via.placeholder.com/400x500?text=Dr.+A.Helen+Victoria',
+    image: '/counsellors/helen.png',
     specialty: 'Networking & Comm (NWC)'
   },
   { 
     id: 3, 
     name: 'Dr. P.Supraja', 
     role: 'Associate Professor', 
-    image: 'https://via.placeholder.com/400x500?text=Dr.+P.Supraja',
+    image: '/counsellors/supraja.png',
     specialty: 'Value Education Cell'
   },
   { 
     id: 4, 
     name: 'Dr. A Arun', 
     role: 'Associate Professor', 
-    image: 'https://via.placeholder.com/400x500?text=Dr.+A+Arun',
+    image: '/counsellors/arun.png',
     specialty: 'Networking & Comm (NWC)'
   },
   { 
     id: 5, 
     name: 'Dr. M.Vaishnavi Moorthy', 
     role: 'Associate Professor', 
-    image: 'https://via.placeholder.com/400x500?text=Dr.+M.Vaishnavi+Moorthy',
+    image: '/counsellors/vaishnavi.png',
     specialty: 'Networking & Comm (NWC)'
   },
   { 
     id: 6, 
     name: 'Dr. Lakshmi Narayan', 
     role: 'Associate Professor', 
-    image: 'https://via.placeholder.com/400x500?text=Dr.+Lakshmi+Narayan',
+    image: '/counsellors/lakshmi.png',
     specialty: 'Networking & Comm (NWC)'
   }
 ];
