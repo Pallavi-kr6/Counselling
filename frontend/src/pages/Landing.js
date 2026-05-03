@@ -42,7 +42,7 @@ const professionals = [
   },
   { 
     id: 6, 
-    name: 'Dr. Lakshmi Narayan', 
+    name: 'Dr. Lakshmi Narayanan K', 
     role: 'Associate Professor', 
     image: '/counsellors/lakshmi.png',
     specialty: 'Networking & Comm (NWC)'
