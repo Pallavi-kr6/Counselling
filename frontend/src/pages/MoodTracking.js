@@ -176,12 +176,25 @@ const MoodTracking = () => {
     // 2. Convert to array and sort chronologically (oldest to newest)
     const sortedUniqueDays = Object.values(grouped).sort((a, b) => new Date(a.date) - new Date(b.date));
 
+    const emojiToLabel = {
+      '😢': 'Struggling',
+      '😔': 'Down',
+      '😐': 'Okay',
+      '🙂': 'Good',
+      '😊': 'Great'
+    };
+
     // 3. Take last 7 days and format for Recharts
-    return sortedUniqueDays.slice(-7).map(entry => ({
-      date: new Date(entry.date).toLocaleDateString('en-US', { weekday: 'short' }),
-      score: emojiToScore[entry.emoji] || parseInt(entry.mood) || 5,
-      emoji: entry.emoji || '😐'
-    }));
+    return sortedUniqueDays.slice(-7).map(entry => {
+      const dateObj = new Date(entry.date);
+      return {
+        weekday: dateObj.toLocaleDateString('en-US', { weekday: 'short' }),
+        fullDate: dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        score: emojiToScore[entry.emoji] || parseInt(entry.mood) || 5,
+        emoji: entry.emoji || '😐',
+        label: emojiToLabel[entry.emoji] || 'Neutral'
+      };
+    });
   })();
 
   const CustomDot = (props) => {
@@ -492,14 +505,26 @@ const MoodTracking = () => {
             </div>
             <div style={{ height: '300px', width: '100%' }}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={rechartsData} margin={{ top: 30, right: 30, left: 0, bottom: 10 }}>
+                <LineChart data={rechartsData} margin={{ top: 30, right: 30, left: 0, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis 
-                    dataKey="date" 
+                    dataKey="weekday" 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 500 }} 
-                    dy={15} 
+                    tick={(props) => {
+                      const { x, y, payload } = props;
+                      const entry = rechartsData[payload.index];
+                      return (
+                        <g transform={`translate(${x},${y})`}>
+                          <text x={0} y={0} dy={16} textAnchor="middle" fill="#64748b" fontSize={12} fontWeight={600}>
+                            {entry.weekday}
+                          </text>
+                          <text x={0} y={0} dy={32} textAnchor="middle" fill="#94a3b8" fontSize={10}>
+                            {entry.fullDate}
+                          </text>
+                        </g>
+                      );
+                    }}
                   />
                   <YAxis 
                     domain={[1, 10]} 
@@ -511,16 +536,31 @@ const MoodTracking = () => {
                   />
                   <RechartsTooltip 
                     cursor={{ stroke: '#f1f5f9', strokeWidth: 2 }}
-                    contentStyle={{ 
-                      borderRadius: '16px', 
-                      border: 'none', 
-                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-                      background: 'rgba(255, 255, 255, 0.95)',
-                      backdropFilter: 'blur(10px)',
-                      padding: '12px 16px'
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div style={{ 
+                            background: 'rgba(255, 255, 255, 0.95)', 
+                            padding: '12px 16px', 
+                            borderRadius: '16px', 
+                            boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                            border: '1px solid #f1f5f9',
+                            backdropFilter: 'blur(10px)'
+                          }}>
+                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>{data.weekday}, {data.fullDate}</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                              <span style={{ fontSize: '1.5rem' }}>{data.emoji}</span>
+                              <div>
+                                <p style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>Feeling {data.label}</p>
+                                <p style={{ margin: 0, fontSize: '0.85rem', color: '#2ebaa8', fontWeight: 600 }}>Score: {data.score}/10</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
                     }}
-                    itemStyle={{ color: '#1D9E75', fontWeight: 'bold' }}
-                    formatter={(value) => [`Score: ${value}/10`, 'Feeling']}
                   />
                   <RechartsLine 
                     type="monotone" 
