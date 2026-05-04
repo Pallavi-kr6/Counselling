@@ -160,19 +160,48 @@ const MoodTracking = () => {
     '😊': 9
   };
 
-  const rechartsData = history.slice(0, 7).reverse().map(entry => ({
-    date: new Date(entry.date).toLocaleDateString('en-US', { weekday: 'short' }),
-    score: emojiToScore[entry.emoji] || parseInt(entry.mood) || 5,
-    emoji: entry.emoji || '😐'
-  }));
+  const rechartsData = (() => {
+    if (!history || history.length === 0) return [];
+    
+    // 1. Group by date string to handle duplicates (only keep last check-in of each day)
+    const grouped = history.reduce((acc, entry) => {
+      // entry.date is YYYY-MM-DD
+      const dateKey = entry.date; 
+      if (!acc[dateKey]) {
+        acc[dateKey] = entry;
+      }
+      return acc;
+    }, {});
+
+    // 2. Convert to array and sort chronologically (oldest to newest)
+    const sortedUniqueDays = Object.values(grouped).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // 3. Take last 7 days and format for Recharts
+    return sortedUniqueDays.slice(-7).map(entry => ({
+      date: new Date(entry.date).toLocaleDateString('en-US', { weekday: 'short' }),
+      score: emojiToScore[entry.emoji] || parseInt(entry.mood) || 5,
+      emoji: entry.emoji || '😐'
+    }));
+  })();
 
   const CustomDot = (props) => {
-    const { cx, cy, payload } = props;
+    const { cx, cy, payload, index } = props;
     if (!cx || !cy) return null;
+    
+    // Only show emoji on actual data points, slightly offset
     return (
-      <text x={cx} y={cy - 10} fill="#666" fontSize="16" textAnchor="middle">
-        {payload.emoji}
-      </text>
+      <g key={`dot-${index}`}>
+        <circle cx={cx} cy={cy} r={4} fill="#1D9E75" stroke="#fff" strokeWidth={2} />
+        <text 
+          x={cx} 
+          y={cy - 15} 
+          fontSize="18" 
+          textAnchor="middle"
+          style={{ pointerEvents: 'none' }}
+        >
+          {payload.emoji}
+        </text>
+      </g>
     );
   };
 
@@ -463,22 +492,44 @@ const MoodTracking = () => {
             </div>
             <div style={{ height: '300px', width: '100%' }}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={rechartsData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 13 }} dy={10} />
-                  <YAxis domain={[1, 10]} ticks={[1, 3, 5, 7, 9]} axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 13 }} dx={-10} />
+                <LineChart data={rechartsData} margin={{ top: 30, right: 30, left: 0, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis 
+                    dataKey="date" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 500 }} 
+                    dy={15} 
+                  />
+                  <YAxis 
+                    domain={[1, 10]} 
+                    ticks={[1, 3, 5, 7, 9]} 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 500 }} 
+                    dx={-10} 
+                  />
                   <RechartsTooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}
+                    cursor={{ stroke: '#f1f5f9', strokeWidth: 2 }}
+                    contentStyle={{ 
+                      borderRadius: '16px', 
+                      border: 'none', 
+                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                      background: 'rgba(255, 255, 255, 0.95)',
+                      backdropFilter: 'blur(10px)',
+                      padding: '12px 16px'
+                    }}
                     itemStyle={{ color: '#1D9E75', fontWeight: 'bold' }}
-                    formatter={(value) => [`Score: ${value}`, 'Mood']}
+                    formatter={(value) => [`Score: ${value}/10`, 'Feeling']}
                   />
                   <RechartsLine 
                     type="monotone" 
                     dataKey="score" 
-                    stroke="#1D9E75" 
-                    strokeWidth={3}
+                    stroke="#2ebaa8" 
+                    strokeWidth={4}
                     dot={<CustomDot />}
-                    activeDot={{ r: 6, fill: '#1D9E75', stroke: '#fff', strokeWidth: 2 }}
+                    activeDot={{ r: 8, fill: '#2ebaa8', stroke: '#fff', strokeWidth: 3 }}
+                    animationDuration={1500}
                   />
                 </LineChart>
               </ResponsiveContainer>
