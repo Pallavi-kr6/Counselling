@@ -37,7 +37,7 @@ const CATEGORY_CONFIG = {
 // ── Local seed — shown while DB data loads or on error ────────────────────
 const SEED_RESOURCES = [
   { id: 's1', title: 'Box Breathing Exercise (4-4-4-4)', category: 'stress',        type: 'exercise', description: 'A structured breath technique used to immediately calm the nervous system under pressure.', content_url: 'https://www.healthline.com/health/box-breathing' },
-  { id: 's2', title: '5-Minute Stress Relief Breathing', category: 'stress',        type: 'video',    description: 'Follow this gentle visual guide to lower cortisol and activate your parasympathetic system.', content_url: 'https://www.youtube.com/embed/nmFUDkj1Aq0' },
+  { id: 's2', title: '5-Minute Stress Relief Breathing', category: 'stress',        type: 'video',    description: 'Follow this gentle visual guide to lower cortisol and activate your parasympathetic system.', content_url: 'https://www.youtube.com/embed/inpok4MKVLM' },
   { id: 's3', title: 'Managing Academic Stress',          category: 'stress',        type: 'article',  description: 'Evidence-based, practical steps to handle workload pressure without overwhelming yourself.', content_url: 'https://students.dartmouth.edu/wellness-center/wellness-mindfulness/relaxation-downloads/managing-academic-stress' },
   { id: 's4', title: '5-4-3-2-1 Grounding Technique',    category: 'anxiety',       type: 'article',  description: 'Anchor yourself to the present using your five senses — instant relief for spiralling thoughts.', content_url: 'https://www.urmc.rochester.edu/behavioral-health-partners/bhp-blog/april-2018/5-4-3-2-1-coping-technique-for-anxiety.aspx' },
   { id: 's5', title: 'Guided Anxiety Relief Breathing',   category: 'anxiety',       type: 'video',    description: 'A calming, 2-minute visual guide perfectly paced to quiet an anxious mind.', content_url: 'https://www.youtube.com/embed/aNXKjGFUlMs' },
@@ -218,6 +218,7 @@ const Resources = () => {
   const [activeVideo, setActiveVideo] = useState(null);
 
   const VideoModal = ({ video, onClose }) => {
+    const [embedBlocked, setEmbedBlocked] = React.useState(false);
     if (!video) return null;
     
     // Ensure URL is in embed format
@@ -225,14 +226,19 @@ const Resources = () => {
     if (embedUrl.includes('youtube.com/watch?v=')) {
       embedUrl = embedUrl.replace('watch?v=', 'embed/');
     }
+    // Build a direct YouTube watch URL for the fallback button
+    const watchUrl = embedUrl.replace('youtube.com/embed/', 'youtube.com/watch?v=');
 
     return (
-      <div style={{
-        position: 'fixed', inset: 0, zIndex: 2000,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '2rem', background: 'rgba(15, 23, 42, 0.9)',
-        backdropFilter: 'blur(8px)'
-      }}>
+      <div 
+        style={{
+          position: 'fixed', inset: 0, zIndex: 2000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '2rem', background: 'rgba(15, 23, 42, 0.9)',
+          backdropFilter: 'blur(8px)'
+        }}
+        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      >
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -251,17 +257,56 @@ const Resources = () => {
               <FiX size={20} color="#64748b" />
             </button>
           </div>
-          <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
-            <iframe
-              src={embedUrl}
-              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-          <div style={{ padding: '1.5rem 2rem', background: '#f8fafc' }}>
-            <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem' }}>{video.description}</p>
+
+          {embedBlocked ? (
+            <div style={{
+              padding: '4rem 2rem', textAlign: 'center', background: '#f8fafc',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem'
+            }}>
+              <div style={{ fontSize: '3rem' }}>🎬</div>
+              <p style={{ color: '#64748b', marginBottom: '0.5rem', fontSize: '1rem' }}>
+                This video can't be played here directly.
+              </p>
+              <a
+                href={watchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                  padding: '0.85rem 2rem', borderRadius: '100px',
+                  background: '#ef4444', color: '#fff', textDecoration: 'none',
+                  fontWeight: 700, fontSize: '1rem',
+                  boxShadow: '0 4px 15px rgba(239,68,68,0.3)'
+                }}
+              >
+                <FiVideo size={18} /> Watch on YouTube
+              </a>
+            </div>
+          ) : (
+            <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, background: '#000' }}>
+              <iframe
+                src={`${embedUrl}?rel=0&modestbranding=1`}
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                onError={() => setEmbedBlocked(true)}
+              />
+            </div>
+          )}
+
+          <div style={{ padding: '1.5rem 2rem', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem', flex: 1 }}>{video.description}</p>
+            {!embedBlocked && (
+              <a
+                href={watchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#ef4444', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none', marginLeft: '1rem', whiteSpace: 'nowrap' }}
+              >
+                Open in YouTube ↗
+              </a>
+            )}
           </div>
         </motion.div>
       </div>
