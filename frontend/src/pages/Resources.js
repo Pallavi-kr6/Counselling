@@ -738,6 +738,8 @@ const Resources = () => {
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {activeVideo && (
           <VideoModal 
