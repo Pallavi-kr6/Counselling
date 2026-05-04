@@ -37,29 +37,33 @@ const CATEGORY_CONFIG = {
 // ── Local seed — shown while DB data loads or on error ────────────────────
 const SEED_RESOURCES = [
   { id: 's1', title: 'Box Breathing Exercise (4-4-4-4)', category: 'stress',        type: 'exercise', description: 'A structured breath technique used to immediately calm the nervous system under pressure.', content_url: 'https://www.healthline.com/health/box-breathing' },
-  { id: 's2', title: '5-Minute Stress Relief Breathing', category: 'stress',        type: 'video',    description: 'Follow this gentle visual guide to lower cortisol and activate your parasympathetic system.', content_url: 'https://www.youtube.com/watch?v=nmFUDkj1Aq0' },
+  { id: 's2', title: '5-Minute Stress Relief Breathing', category: 'stress',        type: 'video',    description: 'Follow this gentle visual guide to lower cortisol and activate your parasympathetic system.', content_url: 'https://www.youtube.com/embed/nmFUDkj1Aq0' },
   { id: 's3', title: 'Managing Academic Stress',          category: 'stress',        type: 'article',  description: 'Evidence-based, practical steps to handle workload pressure without overwhelming yourself.', content_url: 'https://students.dartmouth.edu/wellness-center/wellness-mindfulness/relaxation-downloads/managing-academic-stress' },
   { id: 's4', title: '5-4-3-2-1 Grounding Technique',    category: 'anxiety',       type: 'article',  description: 'Anchor yourself to the present using your five senses — instant relief for spiralling thoughts.', content_url: 'https://www.urmc.rochester.edu/behavioral-health-partners/bhp-blog/april-2018/5-4-3-2-1-coping-technique-for-anxiety.aspx' },
-  { id: 's5', title: 'Guided Anxiety Relief Breathing',   category: 'anxiety',       type: 'video',    description: 'A calming, 2-minute visual guide perfectly paced to quiet an anxious mind.', content_url: 'https://www.youtube.com/watch?v=aNXKjGFUlMs' },
+  { id: 's5', title: 'Guided Anxiety Relief Breathing',   category: 'anxiety',       type: 'video',    description: 'A calming, 2-minute visual guide perfectly paced to quiet an anxious mind.', content_url: 'https://www.youtube.com/embed/aNXKjGFUlMs' },
   { id: 's6', title: 'Progressive Muscle Relaxation',     category: 'anxiety',       type: 'exercise', description: 'Systematically tense and release muscle groups to release anxiety stored in your body.', content_url: 'https://www.anxietycanada.com/articles/how-to-do-progressive-muscle-relaxation/' },
-  { id: 's7', title: 'Navigating Loneliness at University', category: 'relationships', type: 'article',  description: 'A research-backed guide to building genuine connection and easing the quiet ache of loneliness.', content_url: 'https://www.psychologytoday.com/us/blog/romantically-attached/202301/how-to-cope-with-loneliness-in-college' },
+  { id: 's7', title: 'Overcoming Academic Anxiety',       category: 'academic',      type: 'video',    description: 'Practical strategies for managing exam nerves and performance pressure.', content_url: 'https://www.youtube.com/embed/S_B7_P-gKsg' },
   { id: 's8', title: 'Setting Healthy Boundaries',        category: 'relationships', type: 'article',  description: 'Express needs, say no without guilt, and build relationships that actually feel safe.', content_url: 'https://www.betterhelp.com/advice/relations/setting-healthy-boundaries/' },
   { id: 's9', title: 'Expressive Writing for Connection', category: 'relationships', type: 'exercise', description: 'Use structured journaling prompts to process relationship hurt, loneliness, or conflict.', content_url: 'https://ggia.berkeley.edu/practice/expressive_writing' },
-  { id: 's10', title: 'Evidence-Based Study Techniques', category: 'academic',      type: 'article',  description: 'Why retrieval practice and spaced repetition outperform any other study method.', content_url: 'https://learningscientists.org/six-strategies-for-effective-learning' },
-  { id: 's11', title: 'The Pomodoro Technique',           category: 'academic',      type: 'video',    description: 'Work in 25-minute sprints with built-in breaks to sustain focus without burning out.', content_url: 'https://www.youtube.com/watch?v=mNBmG24djoY' },
-  { id: 's12', title: 'Weekly Study Planner Exercise',    category: 'academic',      type: 'exercise', description: 'A structured time-blocking exercise to turn overwhelming to-do lists into a manageable plan.', content_url: 'https://www.notion.so/templates/student-dashboard' },
+  { id: 's10', title: '10-Minute Morning Meditation',     category: 'stress',        type: 'video',    description: 'Start your day with clarity and intention. Perfect for busy students.', content_url: 'https://www.youtube.com/embed/ENYYb5vUisU' },
+  { id: 's11', title: 'The Pomodoro Technique',           category: 'academic',      type: 'video',    description: 'Work in 25-minute sprints with built-in breaks to sustain focus without burning out.', content_url: 'https://www.youtube.com/embed/mNBmG24djoY' },
+  { id: 's12', title: 'Sleep Hygiene for Students',       category: 'stress',        type: 'article',  description: 'Better sleep leads to better grades and mood. Learn the science of rest.', content_url: 'https://www.sleepfoundation.org/school-and-sleep' },
 ];
 
 // ── Card component ──────────────────────────────────────────────────────────
-function ResourceCard({ resource, variants }) {
+function ResourceCard({ resource, variants, onWatch }) {
   const typeCfg    = TYPE_CONFIG[resource.type]  || TYPE_CONFIG.article;
   const catCfg     = CATEGORY_CONFIG[resource.category] || { grad: 'linear-gradient(135deg, #6366f1, #8b5cf6)', accent: '#6366f1' };
   const TypeIcon   = typeCfg.icon;
   const link       = resource.content_url || resource.url || '#';
   const isInternal = link.startsWith('/');
+  const isVideo    = resource.type === 'video';
 
-  const handleOpen = () => {
-    if (!isInternal) {
+  const handleOpen = (e) => {
+    if (isVideo) {
+      e.preventDefault();
+      onWatch(resource);
+    } else if (!isInternal) {
       api.post(`/resources/${resource.id}/view`).catch(() => {});
     }
   };
@@ -72,13 +76,13 @@ function ResourceCard({ resource, variants }) {
         flexDirection: 'column',
         borderRadius:  '1.5rem',
         overflow:      'hidden',
-        background:    'rgba(255,255,255,0.55)',
+        background:    'rgba(255,255,255,0.7)',
         backdropFilter:'blur(12px)',
-        border:        '1px solid rgba(255,255,255,0.7)',
-        boxShadow:     '0 4px 24px rgba(0,0,0,0.06)',
-        transition:    'transform 0.25s ease, box-shadow 0.25s ease',
+        border:        '1px solid rgba(255,255,255,0.8)',
+        boxShadow:     '0 10px 30px rgba(0,0,0,0.04)',
+        transition:    'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
-      whileHover={{ y: -4, boxShadow: '0 12px 40px rgba(0,0,0,0.12)' }}
+      whileHover={{ y: -8, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
     >
       {/* Colour bar */}
       <div style={{
@@ -89,7 +93,7 @@ function ResourceCard({ resource, variants }) {
 
       {/* Type icon header */}
       <div style={{
-        height:         120,
+        height:         140,
         background:     typeCfg.grad,
         display:        'flex',
         alignItems:     'center',
@@ -97,65 +101,67 @@ function ResourceCard({ resource, variants }) {
         position:       'relative',
         overflow:       'hidden',
       }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }} />
-        <div style={{
-          position:        'relative', zIndex: 1,
-          padding:         '1rem', borderRadius: '50%',
-          background:      'rgba(255,255,255,0.2)',
-          color:           '#fff',
-          boxShadow:       '0 8px 32px rgba(0,0,0,0.12)',
-          display:         'flex',
-        }}>
-          <TypeIcon size={34} />
-        </div>
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(4px)' }} />
+        <motion.div 
+          initial={{ scale: 0.8 }}
+          whileHover={{ scale: 1.1 }}
+          style={{
+            position:        'relative', zIndex: 1,
+            padding:         '1.2rem', borderRadius: '50%',
+            background:      'rgba(255,255,255,0.25)',
+            color:           '#fff',
+            boxShadow:       '0 8px 32px rgba(0,0,0,0.1)',
+            display:         'flex',
+          }}>
+          <TypeIcon size={38} />
+        </motion.div>
         {/* Type badge */}
         <div style={{
           position:        'absolute', top: 12, right: 12,
-          background:      'rgba(255,255,255,0.25)',
-          backdropFilter:  'blur(8px)',
-          border:          '1px solid rgba(255,255,255,0.4)',
+          background:      'rgba(255,255,255,0.2)',
+          backdropFilter:  'blur(10px)',
+          border:          '1px solid rgba(255,255,255,0.3)',
           color:           '#fff',
-          fontSize:        11, fontWeight: 700,
-          letterSpacing:   '0.06em',
+          fontSize:        10, fontWeight: 800,
+          letterSpacing:   '0.08em',
           textTransform:   'uppercase',
-          padding:         '3px 10px', borderRadius: 20,
+          padding:         '4px 12px', borderRadius: 20,
         }}>
           {typeCfg.label}
         </div>
       </div>
 
       {/* Body */}
-      <div style={{ padding: '1.4rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
         {/* Category chip */}
         <span style={{
           display:        'inline-flex',
           alignItems:     'center',
           gap:            4,
-          fontSize:       11, fontWeight: 700,
-          letterSpacing:  '0.05em', textTransform: 'uppercase',
+          fontSize:       10, fontWeight: 800,
+          letterSpacing:  '0.06em', textTransform: 'uppercase',
           color:          catCfg.accent,
-          background:     `${catCfg.accent}18`,
-          border:         `1px solid ${catCfg.accent}40`,
-          padding:        '3px 10px', borderRadius: 20,
-          marginBottom:   '0.75rem',
+          background:     `${catCfg.accent}12`,
+          border:         `1px solid ${catCfg.accent}30`,
+          padding:        '4px 12px', borderRadius: 20,
+          marginBottom:   '0.8rem',
           width:          'fit-content',
         }}>
           {resource.category}
         </span>
 
         <h3 style={{
-          fontSize:     '1.1rem', fontWeight: 700,
-          color:        'var(--text-primary)',
-          marginBottom: '0.6rem', lineHeight: 1.4,
-          margin:       '0 0 0.6rem',
+          fontSize:     '1.2rem', fontWeight: 700,
+          color:        '#1e293b',
+          marginBottom: '0.7rem', lineHeight: 1.4,
         }}>
           {resource.title}
         </h3>
 
         <p style={{
-          color:       'var(--text-secondary)',
-          fontSize:    '0.9rem', lineHeight: 1.6,
-          flex:        1, margin: '0 0 1.25rem',
+          color:       '#64748b',
+          fontSize:    '0.95rem', lineHeight: 1.6,
+          flex:        1, margin: '0 0 1.5rem',
         }}>
           {resource.description || 'A supportive resource for your mental health journey.'}
         </p>
@@ -170,22 +176,20 @@ function ResourceCard({ resource, variants }) {
               display:         'flex',
               alignItems:      'center',
               justifyContent:  'center',
-              gap:             '0.5rem',
-              padding:         '0.75rem',
+              gap:             '0.6rem',
+              padding:         '0.85rem',
               borderRadius:    '100px',
               background:      catCfg.accent,
               color:           '#fff',
               textDecoration:  'none',
-              fontWeight:      600,
-              fontSize:        '0.9rem',
-              transition:      'all 0.2s ease',
-              boxShadow:       `0 4px 14px ${catCfg.accent}44`,
+              fontWeight:      700,
+              fontSize:        '0.95rem',
+              transition:      'all 0.3s ease',
+              boxShadow:       `0 6px 20px ${catCfg.accent}33`,
             }}
-            onMouseOver={e => { e.currentTarget.style.filter = 'brightness(1.1)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-            onMouseOut={e  => { e.currentTarget.style.filter = 'brightness(1)';   e.currentTarget.style.transform = 'translateY(0)'; }}
           >
-            {resource.type === 'video' ? 'Watch' : resource.type === 'exercise' ? 'Try it' : 'Read'}
-            <FiExternalLink size={13} />
+            {isVideo ? 'Watch Now' : resource.type === 'exercise' ? 'Try it' : 'Read Article'}
+            {isVideo ? <FiVideo size={16} /> : <FiExternalLink size={16} />}
           </a>
         )}
       </div>
@@ -201,16 +205,59 @@ const Resources = () => {
   const [typeFilter,   setTypeFilter]   = useState('all');
   const [searchQuery,  setSearchQuery]  = useState('');
   const [loading,      setLoading]      = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    type: 'article',
-    category: 'stress',
-    url: ''
-  });
   const [selectedFile, setSelectedFile] = useState(null);
+  const [activeVideo, setActiveVideo] = useState(null);
+
+  const VideoModal = ({ video, onClose }) => {
+    if (!video) return null;
+    
+    // Ensure URL is in embed format
+    let embedUrl = video.content_url;
+    if (embedUrl.includes('youtube.com/watch?v=')) {
+      embedUrl = embedUrl.replace('watch?v=', 'embed/');
+    }
+
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 2000,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '2rem', background: 'rgba(15, 23, 42, 0.9)',
+        backdropFilter: 'blur(8px)'
+      }}>
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          style={{
+            width: '100%', maxWidth: '900px', 
+            background: '#fff', borderRadius: '2rem',
+            overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
+          }}
+        >
+          <div style={{ 
+            padding: '1.5rem 2rem', borderBottom: '1px solid #f1f5f9',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+          }}>
+            <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#1e293b' }}>{video.title}</h3>
+            <button onClick={onClose} style={{ background: '#f1f5f9', border: 'none', padding: '0.5rem', borderRadius: '50%', cursor: 'pointer' }}>
+              <FiX size={20} color="#64748b" />
+            </button>
+          </div>
+          <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+            <iframe
+              src={embedUrl}
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+          <div style={{ padding: '1.5rem 2rem', background: '#f8fafc' }}>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem' }}>{video.description}</p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  };
 
   const handleAddResource = async (e) => {
     e.preventDefault();
@@ -511,7 +558,11 @@ const Resources = () => {
               >
                 {filtered.map(r => (
                   <div key={r.id} style={{ position: 'relative' }}>
-                    <ResourceCard resource={r} variants={itemVariants} />
+                    <ResourceCard 
+                      resource={r} 
+                      variants={itemVariants} 
+                      onWatch={(v) => setActiveVideo(v)}
+                    />
                     {user?.userType === 'counsellor' && typeof r.id === 'string' && (
                       <motion.button
                         whileHover={{ scale: 1.1, color: '#ef4444' }}
@@ -686,6 +737,13 @@ const Resources = () => {
               </form>
             </motion.div>
           </div>
+        )}
+      <AnimatePresence>
+        {activeVideo && (
+          <VideoModal 
+            video={activeVideo} 
+            onClose={() => setActiveVideo(null)} 
+          />
         )}
       </AnimatePresence>
 
