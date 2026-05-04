@@ -93,7 +93,7 @@ If you are a student at this college and need urgent support, please reach out t
    Room No: TP406a
    Mobile: 9884011783
 
-5. Dr. Lakshmi Narayanan R – Associate Professor
+5. Dr. Lakshmi Narayanan K – Associate Professor
    Email: lakshmir4@srmist.edu.in
    Room No: TP406a
    Mobile: 9790408011

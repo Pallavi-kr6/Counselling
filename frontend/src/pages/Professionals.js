@@ -5,45 +5,65 @@ import { FiArrowLeft, FiStar, FiClock, FiMapPin } from 'react-icons/fi';
 import './Professionals.css';
 
 const allProfessionals = [
-  { 
-    id: 1, 
-    name: 'Dr. Sarah Smith', 
-    role: 'Clinical Psychologist', 
-    image: '/landing/prof1.png',
-    specialty: 'Anxiety & Stress',
-    rating: 4.9,
+  {
+    id: 1,
+    name: 'Dr. V.M Gayathri',
+    role: 'Associate Professor',
+    image: '/counsellors/gayathri.png',
+    specialty: 'Networking & Comm (NWC)',
+    experience: '15+ Years',
+    location: 'S617, UB',
+    profileUrl: 'https://www.srmist.edu.in/faculty/mrs-v-m-gayathri/'
+  },
+  {
+    id: 2,
+    name: 'Dr. A.Helen Victoria',
+    role: 'Associate Professor',
+    image: '/counsellors/helen.png',
+    specialty: 'Networking & Comm (NWC)',
     experience: '12+ Years',
-    location: 'Building A, Room 302'
+    location: 'S617, UB',
+    profileUrl: 'https://www.srmist.edu.in/faculty/ms-a-helen-victoria/'
   },
-  { 
-    id: 2, 
-    name: 'Dr. Michael Chen', 
-    role: 'Counselling Specialist', 
-    image: '/landing/prof2.png',
-    specialty: 'Academic Performance',
-    rating: 4.8,
-    experience: '8 Years',
-    location: 'Student Hub, Floor 2'
+  {
+    id: 3,
+    name: 'Dr. P.Supraja',
+    role: 'Associate Professor',
+    image: '/counsellors/supraja.png',
+    specialty: 'Value Education Cell',
+    experience: '10+ Years',
+    location: 'VEC, Main Block',
+    profileUrl: 'https://www.srmist.edu.in/faculty/dr-p-supraja/'
   },
-  { 
-    id: 3, 
-    name: 'Ms. Emily Rodriguez', 
-    role: 'Wellness Coach', 
-    image: '/landing/prof3.png',
-    specialty: 'Mindfulness & Growth',
-    rating: 4.9,
-    experience: '10 Years',
-    location: 'Wellness Wing, Room 12'
+  {
+    id: 4,
+    name: 'Dr. A Arun',
+    role: 'Associate Professor',
+    image: '/counsellors/arun.png',
+    specialty: 'Networking & Comm (NWC)',
+    experience: '14 Years',
+    location: 'S617, UB',
+    profileUrl: 'https://www.srmist.edu.in/faculty/dr-arun-a/'
   },
-  { 
-    id: 4, 
-    name: 'Dr. David Wilson', 
-    role: 'Mental Health Advocate', 
-    image: '/landing/prof2.png',
-    specialty: 'Crisis Intervention',
-    rating: 4.7,
-    experience: '15 Years',
-    location: 'Building B, Room 405'
+  {
+    id: 5,
+    name: 'Dr. M.Vaishnavi Moorthy',
+    role: 'Associate Professor',
+    image: '/counsellors/vaishnavi.png',
+    specialty: 'Networking & Comm (NWC)',
+    experience: '9 Years',
+    location: 'S617, UB',
+    profileUrl: 'https://www.srmist.edu.in/faculty/vaishnavi-moorthy/'
+  },
+  {
+    id: 6,
+    name: 'Dr. Lakshmi Narayanan K',
+    role: 'Associate Professor',
+    image: '/counsellors/lakshmi.png',
+    specialty: 'Networking & Comm (NWC)',
+    experience: '11 Years',
+    location: 'S617, UB',
+    profileUrl: 'https://www.srmist.edu.in/faculty/dr-lakshmi-narayanan-k/'
   }
 ];
 
@@ -63,7 +83,7 @@ const Professionals = () => {
 
         <div className="prof-list-grid">
           {allProfessionals.map((prof, index) => (
-            <motion.div 
+            <motion.div
               key={prof.id}
               className="prof-list-card glass-card"
               initial={{ opacity: 0, y: 20 }}
@@ -80,22 +100,28 @@ const Professionals = () => {
                 </div>
                 <h3>{prof.name}</h3>
                 <p className="role">{prof.role}</p>
-                
+
                 <div className="prof-details-row">
                   <span><FiClock /> {prof.experience}</span>
                   <span><FiMapPin /> {prof.location}</span>
                 </div>
 
                 <div className="prof-list-actions">
-                  <button 
+                  <button
                     className="btn btn-primary"
                     onClick={() => navigate('/login')}
                   >
                     Book Session
                   </button>
-                  <button 
+                  <button
                     className="btn btn-ghost"
-                    onClick={() => navigate(`/professional/${prof.id}`)}
+                    onClick={() => {
+                      if (prof.profileUrl) {
+                        window.location.href = prof.profileUrl;
+                      } else {
+                        navigate(`/professional/${prof.id}`);
+                      }
+                    }}
                   >
                     View Profile
                   </button>

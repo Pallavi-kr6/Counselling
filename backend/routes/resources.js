@@ -26,8 +26,7 @@ router.get('/', verifyToken, async (req, res) => {
 
     let query = supabase
       .from('resources')
-      .select('id, title, description, category, content_url, url, type, is_active, created_at')
-      .eq('is_active', true)
+      .select('id, title, description, category, url, type, created_at')
       .order('created_at', { ascending: false });
 
     if (category && category !== 'all') {
@@ -73,9 +72,8 @@ router.get('/suggest', verifyToken, async (req, res) => {
 
     const { data, error } = await supabase
       .from('resources')
-      .select('id, title, description, category, content_url, url, type')
+      .select('id, title, description, category, url, type')
       .eq('category', topic)
-      .eq('is_active', true)
       .limit(5);   // fetch a small pool and pick randomly for variety
 
     if (error || !data?.length) {
@@ -103,7 +101,7 @@ router.get('/:id', verifyToken, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('resources')
-      .select('*')
+      .select('id, title, description, category, url, type, created_at')
       .eq('id', req.params.id)
       .single();
 
@@ -112,6 +110,9 @@ router.get('/:id', verifyToken, async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
+    if (data) {
+      data.content_url = data.url;
+    }
     res.json({ resource: data });
   } catch (error) {
     console.error('Get resource error:', error);
@@ -144,13 +145,11 @@ router.post('/', verifyToken, async (req, res) => {
         description: description || null,
         type,
         category,
-        content_url: resolvedUrl,
         url:         resolvedUrl,
         tags:        tags || [],
-        is_active:   true,
         created_by:  req.user.userId,
       })
-      .select()
+      .select('id, title, description, category, url, type, created_at')
       .single();
 
     if (error) {
@@ -158,6 +157,9 @@ router.post('/', verifyToken, async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
+    if (data) {
+      data.content_url = data.url;
+    }
     res.json({ resource: data });
   } catch (error) {
     console.error('Create resource error:', error);
@@ -165,20 +167,27 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────
-// PATCH /api/resources/:id  — toggle is_active (admin only)
-// ─────────────────────────────────────────────────────────────
+// PATCH /api/resources/:id  — update resource (admin only)
 router.patch('/:id', verifyToken, async (req, res) => {
   try {
     if (req.user.userType !== 'admin') {
       return res.status(403).json({ error: 'Admin only' });
     }
-    const { is_active } = req.body;
+    const { title, description, type, category, url } = req.body;
+    const updates = { 
+      updated_at: new Date().toISOString() 
+    };
+    if (title) updates.title = title;
+    if (description) updates.description = description;
+    if (type) updates.type = type;
+    if (category) updates.category = category;
+    if (url) updates.url = url;
+
     const { data, error } = await supabase
       .from('resources')
-      .update({ is_active, updated_at: new Date().toISOString() })
+      .update(updates)
       .eq('id', req.params.id)
-      .select()
+      .select('id, title, description, category, url, type, created_at')
       .single();
     if (error) throw error;
     res.json({ resource: data });
@@ -263,25 +272,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
   }
 });
 
-// Get a suggested resource based on topic
-router.get('/suggest', async (req, res) => {
-  try {
-    const { topic } = req.query;
-    if (!topic) return res.status(400).json({ error: 'Topic required' });
+// Removed duplicate suggested resource endpoint. Consolidate logic in the authenticated /suggest route if public access is needed.
 
-    const { data, error } = await supabase
-      .from('resources')
-      .select('*')
-      .eq('category', topic.toLowerCase())
-      .limit(1)
-      .maybeSingle();
-
-    if (error) throw error;
-    res.json({ resource: data });
-  } catch (error) {
-    console.error('Suggest resource error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
 
 module.exports = router;
