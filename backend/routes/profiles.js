@@ -303,16 +303,15 @@ router.put('/counsellor/status/:userId/toggle', verifyToken, async (req, res) =>
       .from('counsellor_profiles')
       .update({ 
         is_available: isAvailable, 
-        available_until: availableUntil,
         is_online: isAvailable // backwards compatibility
       })
       .eq('user_id', userId)
-      .select()
+      .select('is_available, is_online')
       .single();
 
     if (error) throw error;
 
-    res.json({ isAvailable: data.is_available, availableUntil: data.available_until, isOnline: data.is_online });
+    res.json({ isAvailable: data.is_available, isOnline: data.is_online });
   } catch (error) {
     console.error('Toggle counsellor status error:', error);
     res.status(500).json({ error: 'Internal server error' });

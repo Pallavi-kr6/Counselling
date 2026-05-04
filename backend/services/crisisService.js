@@ -79,8 +79,7 @@ async function findAvailableCounsellor() {
     const { data: counsellors, error } = await supabase
       .from('counsellor_profiles')
       .select('id, name, user_id, users!inner(email)')
-      .eq('is_available', true)
-      .gt('available_until', nowISO);
+      .eq('is_available', true);
 
     if (error || !counsellors || counsellors.length === 0) {
       throw new Error('No available counsellor');

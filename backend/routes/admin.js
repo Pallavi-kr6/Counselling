@@ -149,7 +149,13 @@ router.get('/watch-flags', verifyToken, requireStaff, async (req, res) => {
       .order('created_at', { ascending: false })
       .limit(Number(limit));
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === 'PGRST205') {
+        console.warn('Table student_watch_flags is missing in schema cache.');
+        return res.json({ watchFlags: [], total: 0, warning: 'Watch flags table not found' });
+      }
+      throw error;
+    }
 
     // Flatten profile into each flag for easy frontend consumption
     const result = (flags || []).map(flag => ({
@@ -248,7 +254,13 @@ router.get('/live-alerts', verifyToken, async (req, res) => {
       .order('created_at', { ascending: false })
       .limit(20);
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === 'PGRST205') {
+        console.warn('Table crisis_alerts is missing in schema cache.');
+        return res.json({ alerts: [], warning: 'Crisis alerts table not found' });
+      }
+      throw error;
+    }
     res.json({ alerts: alerts || [] });
   } catch (error) {
     console.error('Fetch live alerts error:', error);
@@ -334,7 +346,8 @@ router.get('/department-heatmap', verifyToken, requireAdmin, async (req, res) =>
       .from('crisis_alerts')
       .select('student_id, created_at')
       .gte('created_at', startIso);
-    if (crisisErr && crisisErr.code !== 'PGRST116') throw crisisErr;
+    if (crisisErr && crisisErr.code !== 'PGRST116' && crisisErr.code !== 'PGRST205') throw crisisErr;
+    const safeCrisisAlerts = crisisErr?.code === 'PGRST205' ? [] : (crisisAlerts || []);
 
     // 4. Build ordered month list
     const monthsList = [];
@@ -360,7 +373,7 @@ router.get('/department-heatmap', verifyToken, requireAdmin, async (req, res) =>
       grid[dept][key].scores.push(Number(log.mood_score));
     });
 
-    (crisisAlerts || []).forEach(alert => {
+    (safeCrisisAlerts).forEach(alert => {
       const dept = deptMap[alert.student_id];
       if (!dept) return;
       const d   = new Date(alert.created_at);

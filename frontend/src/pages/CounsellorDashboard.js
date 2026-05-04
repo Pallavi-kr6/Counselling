@@ -281,6 +281,7 @@ const CounsellorDashboard = () => {
       setIsAvailable(res.data.isAvailable !== undefined ? res.data.isAvailable : res.data.isOnline);
     } catch (err) {
       console.error('Availability toggle error:', err);
+      alert(err.response?.data?.error || 'Failed to update availability status. Please check your connection or contact admin.');
     }
   };
 

@@ -682,7 +682,16 @@ const Resources = () => {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               className="glass-card"
-              style={{ width: '100%', maxWidth: '500px', padding: '2rem', position: 'relative', background: '#fff', borderRadius: '1.5rem' }}
+              style={{ 
+                width: '100%', 
+                maxWidth: '500px', 
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                padding: '2rem', 
+                position: 'relative', 
+                background: '#fff', 
+                borderRadius: '1.5rem' 
+              }}
             >
               <button
                 onClick={() => setShowAddModal(false)}
