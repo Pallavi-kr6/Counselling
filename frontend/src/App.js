@@ -61,6 +61,7 @@ function AnimatedRoutes() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/index.html" element={<Navigate to="/" />} />
         <Route 
           path="/" 
           element={
