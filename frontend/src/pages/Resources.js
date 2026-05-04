@@ -205,6 +205,15 @@ const Resources = () => {
   const [typeFilter,   setTypeFilter]   = useState('all');
   const [searchQuery,  setSearchQuery]  = useState('');
   const [loading,      setLoading]      = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    type: 'article',
+    category: 'stress',
+    url: ''
+  });
   const [selectedFile, setSelectedFile] = useState(null);
   const [activeVideo, setActiveVideo] = useState(null);
 
