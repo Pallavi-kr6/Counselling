@@ -21,6 +21,7 @@ function initializeSocket(httpServer) {
       origin: [
         'https://counselling-1.onrender.com',
         'https://counselling-w1mh.onrender.com',
+        'https://counselling-162v.onrender.com',
         'http://localhost:3000',
         'http://localhost:3001'
       ],
