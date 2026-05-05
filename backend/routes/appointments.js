@@ -355,6 +355,31 @@ router.post('/book', verifyToken, async (req, res) => {
       }
     }
 
+    // 🔒 Check if counsellor is marked unavailable
+    const { data: counsellorStatusCheck, error: counsellorStatusError } = await supabase
+      .from('counsellor_profiles')
+      .select('is_available, available_until')
+      .eq('user_id', counsellorId)
+      .single();
+
+    if (counsellorStatusError && counsellorStatusError.code !== 'PGRST116') {
+      throw counsellorStatusError;
+    }
+
+    if (counsellorStatusCheck && counsellorStatusCheck.is_available === false) {
+      return res.status(409).json({ error: 'This counsellor is currently unavailable for booking' });
+    }
+
+    if (counsellorStatusCheck && counsellorStatusCheck.available_until) {
+      const now = new Date();
+      const availableUntil = new Date(counsellorStatusCheck.available_until);
+      const appointmentDate = new Date(`${date}T${startTime}`);
+      
+      if (availableUntil > now && availableUntil > appointmentDate) {
+        return res.status(409).json({ error: 'This counsellor is unavailable during that time period' });
+      }
+    }
+
     // Check if slot is still available (conflict with existing appointments)
     const { data: conflicting, error: checkError } = await supabase
       .from('appointments')
@@ -1685,6 +1710,31 @@ router.post('/book-day-order', verifyToken, async (req, res) => {
       if (userInsertError) {
         console.error('Auto user insert failed:', userInsertError);
         return res.status(500).json({ error: 'User sync failed' });
+      }
+    }
+
+    // 🔒 Check if counsellor is marked unavailable
+    const { data: counsellorAvailCheck, error: counsellorAvailError } = await supabase
+      .from('counsellor_profiles')
+      .select('is_available, available_until')
+      .eq('user_id', counsellorId)
+      .single();
+
+    if (counsellorAvailError && counsellorAvailError.code !== 'PGRST116') {
+      throw counsellorAvailError;
+    }
+
+    if (counsellorAvailCheck && counsellorAvailCheck.is_available === false) {
+      return res.status(409).json({ error: 'This counsellor is currently unavailable for booking' });
+    }
+
+    if (counsellorAvailCheck && counsellorAvailCheck.available_until) {
+      const now = new Date();
+      const availableUntil = new Date(counsellorAvailCheck.available_until);
+      const appointmentDate = new Date(`${date}T${start_time}`);
+      
+      if (availableUntil > now && availableUntil > appointmentDate) {
+        return res.status(409).json({ error: 'This counsellor is unavailable during that time period' });
       }
     }
 

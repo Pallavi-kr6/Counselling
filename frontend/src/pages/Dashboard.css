@@ -92,9 +92,10 @@
 }
 
 .status-pill.offline {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.2);
+  background: #dc2626;   /* solid red */
+  color: #ffffff;        /* white text */
+  border-color: #dc2626;
+  box-shadow: 0 0 12px rgba(220, 38, 38, 0.6);
 }
 
 .stats-row {

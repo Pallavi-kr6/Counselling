@@ -436,40 +436,7 @@ const StudentDashboard = () => {
           </motion.div>
 
           {/* AI Sentiment Trend Card */}
-          <motion.div className="dashboard-card glass-card" variants={itemVariants} style={{ padding: '2.5rem', gridColumn: 'span auto' }}>
-            <h3 style={{ marginBottom: '1.5rem', fontSize: '1.3rem', fontWeight: '600', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <FiTrendingUp style={{ color: '#2ec4b6' }} /> Subconscious Sentiment
-            </h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
-              We analyze your conversation sentiment in the background to provide you with insights over time.
-            </p>
-
-            {aiMoodLogs.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', background: 'rgba(255,255,255,0.4)', borderRadius: '1rem', padding: '1.5rem', border: '1px solid rgba(46,196,182,0.1)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <span style={{ fontSize: '2.5rem', fontWeight: '700', color: '#2ec4b6', lineHeight: 1 }}>{averageMoodScore}</span>
-                    <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: '600', marginLeft: '4px' }}>/10 avg</span>
-                  </div>
-                  <div style={{ width: '120px', height: '40px' }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={aiMoodLogs.slice(-5)}>
-                        <Line type="monotone" dataKey="score" stroke="#2ec4b6" strokeWidth={2.5} dot={{ r: 3, fill: '#2ec4b6' }} isAnimationActive={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-                <p style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontStyle: 'italic', lineHeight: 1.5, background: 'var(--primary-light)', padding: '1rem', borderRadius: '0.75rem', margin: 0 }}>
-                  "{moodInsight || 'Analyzing your heartspace...'}"
-                </p>
-              </div>
-            ) : (
-              <div className="flex-center" style={{ height: '200px', flexDirection: 'column', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.4)', borderRadius: '1rem', border: '1px dashed rgba(46,196,182,0.3)' }}>
-                <FiHeart size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
-                <p>Chat with our AI bot to generate sentiment insights.</p>
-              </div>
-            )}
-          </motion.div>
+        
 
         </div>
       </div>

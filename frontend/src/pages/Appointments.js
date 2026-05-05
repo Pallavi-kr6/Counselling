@@ -116,18 +116,7 @@ const Appointments = () => {
               : 'Your clinical schedule is below'}
           </motion.p>
 
-          {user?.userType === 'student' && (
-            <motion.button
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              style={{ marginTop: '2rem', padding: '1rem 2rem', borderRadius: '100px', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.05rem' }}
-              className="btn btn-primary"
-              onClick={() => navigate('/book-appointment')}
-            >
-              <FiPlus /> Schedule a Session
-            </motion.button>
-          )}
+   
         </header>
 
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '3rem' }}>

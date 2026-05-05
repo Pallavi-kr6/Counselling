@@ -198,12 +198,12 @@ router.get('/counsellors', verifyToken, async (req, res) => {
     // Get ALL counsellors first (for debugging)
     const { data: allCounsellors, error: allError } = await supabase
       .from('counsellor_profiles')
-      .select('id, user_id, name, designation, department, room_no, phone_no')
+      .select('id, user_id, name, designation, department, room_no, phone_no, is_available, available_until')
       .order('name');
 
     if (allError) throw allError;
 
-    console.log('All counsellors in DB:', allCounsellors?.map(c => ({ name: c.name, dept: c.department })));
+    console.log('All counsellors in DB:', allCounsellors?.map(c => ({ name: c.name, dept: c.department, isAvailable: c.is_available })));
 
     // Filter by department if student has one
     let filteredCounsellors = allCounsellors || [];
@@ -219,6 +219,16 @@ router.get('/counsellors', verifyToken, async (req, res) => {
     // counsellor_availability.counsellor_id as profile.id, others as user_id.
     const counsellorsWithAvailability = await Promise.all(
       filteredCounsellors.map(async (counsellor) => {
+        // Check if counsellor is marked unavailable on their profile
+        const now = new Date();
+        const isMarkedUnavailable = counsellor.is_available === false;
+        const isUnavailableUntil = counsellor.available_until && new Date(counsellor.available_until) > now;
+
+        // If marked unavailable or within unavailable period, don't check availability slots
+        if (isMarkedUnavailable || isUnavailableUntil) {
+          return { ...counsellor, isAvailable: false, reason: isMarkedUnavailable ? 'marked_unavailable' : 'unavailable_until' };
+        }
+
         const { data: availability } = await supabase
           .from('counsellor_availability')
           .select('*')
@@ -226,11 +236,11 @@ router.get('/counsellors', verifyToken, async (req, res) => {
 
         // Counsellor is available only if they have at least one availability slot marked as available
         // If no availability records exist or all are marked as unavailable, counsellor is unavailable
-        const isAvailable = availability && availability.length > 0 
+        const hasAvailableSlots = availability && availability.length > 0 
           ? availability.some(slot => slot.is_available === true) 
           : false;
         
-        return { ...counsellor, isAvailable };
+        return { ...counsellor, isAvailable: hasAvailableSlots };
       })
     );
 

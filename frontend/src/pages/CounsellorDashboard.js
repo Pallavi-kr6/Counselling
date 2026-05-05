@@ -378,27 +378,38 @@ const CounsellorDashboard = () => {
           </div>
         </header>
 
-        <div className="stats-row">
-          {[
-            { label: 'Upcoming',  value: upcomingAppointments.length,                                      icon: <FiCalendar />,      color: '#2EC4B6' },
-            { label: 'Completed', value: counsellorAppointments.filter(a => a.status === 'completed').length, icon: <FiCheckCircle />,   color: '#10B981' },
-            { label: 'Resources', value: '12',                                                               icon: <FiClipboard />,     color: '#9067C6' },
-            {
-              label: urgentCount > 0 ? `${urgentCount} Urgent` : `${watchCount} Watch`,
-              value: watchFlags.length,
-              icon: urgentCount > 0 ? <FiAlertOctagon /> : <FiAlertTriangle />,
-              color: urgentCount > 0 ? '#dc2626' : '#f59e0b',
-            },
-          ].map((stat, i) => (
-            <motion.div key={i} className="stat-card-mini glass-card" variants={cardVariants}>
-              <div className="stat-icon-wrapper" style={{ color: stat.color }}>{stat.icon}</div>
-              <div className="stat-text">
-                <span className="stat-value">{stat.value}</span>
-                <span className="stat-label">{stat.label}</span>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+       <div className="stats-row">
+  {[
+    { 
+      label: 'Upcoming',  
+      value: upcomingAppointments.length,                                      
+      icon: <FiCalendar />,      
+      color: '#2EC4B6' 
+    },
+    { 
+      label: 'Completed', 
+      value: counsellorAppointments.filter(a => a.status === 'completed').length, 
+      icon: <FiCheckCircle />,   
+      color: '#10B981' 
+    },
+    {
+      label: urgentCount > 0 ? `${urgentCount} Urgent` : `${watchCount} Watch`,
+      value: watchFlags.length,
+      icon: urgentCount > 0 ? <FiAlertOctagon /> : <FiAlertTriangle />,
+      color: urgentCount > 0 ? '#dc2626' : '#f59e0b',
+    },
+  ].map((stat, i) => (
+    <motion.div key={i} className="stat-card-mini glass-card" variants={cardVariants}>
+      <div className="stat-icon-wrapper" style={{ color: stat.color }}>
+        {stat.icon}
+      </div>
+      <div className="stat-text">
+        <span className="stat-value">{stat.value}</span>
+        <span className="stat-label">{stat.label}</span>
+      </div>
+    </motion.div>
+  ))}
+</div>
 
         <div className="dashboard-layout">
           <section className="main-content">
@@ -591,7 +602,11 @@ const CounsellorDashboard = () => {
                   <div key={i} className="availability-row-mini">
                     <span className="day-name">{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][slot.day_order_id] || 'Day'}</span>
                     <span className="time-label">{slot.start_time} - {slot.end_time}</span>
-                    <div className={`status-indicator ${slot.is_available ? 'active' : 'inactive'}`} />
+                   <div
+  className={`status-indicator ${
+    isAvailable && slot.is_available ? 'active' : 'inactive'
+  }`}
+/>
                   </div>
                 ))}
               </div>
