@@ -10,6 +10,7 @@ import './AICounselling.css';
 // Profanity filter — initialised once at module level (not inside the component)
 // so it is not re-created on every render.
 const profanityFilter = new Filter();
+profanityFilter.addWords('btxch', 'bxtch');
 
 // ── Crisis keyword list (mirrors crisisService.js on the backend) ──────────
 // Keep both lists in sync. The backend is the authoritative source;
@@ -735,8 +736,8 @@ const AICounselling = () => {
                   resetIdleTimer();
                 }
               }}
-              placeholder={!preChatMoodDone && chatHistory.length === 0 ? 'Select a mood above to start' : isSessionClosed ? 'Session closed — clear chat to start again' : 'Type your message here...'}
-              disabled={loading || isSessionClosed || (!preChatMoodDone && chatHistory.length === 0)}
+              placeholder={!preChatMoodDone && chatHistory.length === 0 ? 'Select a mood above to start' : isCrisis ? 'Session paused. Please seek professional help.' : isSessionClosed ? 'Session closed — clear chat to start again' : 'Type your message here...'}
+              disabled={loading || isSessionClosed || isCrisis || (!preChatMoodDone && chatHistory.length === 0)}
               className={`chat-input${profanityWarning ? ' chat-input--warn' : ''}${isSessionClosed ? ' chat-input--closed' : ''}`}
             />
             <button 

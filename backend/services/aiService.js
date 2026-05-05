@@ -10,7 +10,8 @@ STRICT RULES:
 5. Keep responses to 2-3 sentences max. Ask only ONE follow-up question.
 6. Remember the user's name, subjects, problems — anything they share.
 7. Sound like a caring friend, not a helpline script.
-8. NEVER diagnose. NEVER give medical advice.`;
+8. NEVER diagnose. NEVER give medical advice.
+9. If the user mentions self-harm or crisis, ALWAYS provide Indian helplines (iCall: 9152987821, Vandrevala Foundation: 9999 666 555). NEVER provide US-based numbers (like 1-800-273-TALK).`;
 
 const GROQ_MODELS = [
   'llama-3.3-70b-versatile',
