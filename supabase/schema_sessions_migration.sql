@@ -47,9 +47,11 @@ CREATE TABLE IF NOT EXISTS notifications (
   notification_type TEXT NOT NULL CHECK (notification_type IN (
     'reassignment_request',
     'student_reassignment_approval',
+    'student_confirmation_pending',
     'session_reassigned',
     'session_cancelled',
-    'session_update'
+    'session_update',
+    'student_rejected'
   )),
   title TEXT NOT NULL,
   message TEXT NOT NULL,

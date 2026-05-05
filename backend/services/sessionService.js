@@ -32,7 +32,7 @@ const transporter = nodemailer.createTransport({
     : { rejectUnauthorized: false }
 });
 
-const ACTIVE_SESSION_STATUSES = ['scheduled', 'pending_reassign', 'reassigned'];
+const ACTIVE_SESSION_STATUSES = ['scheduled', 'confirmed', 'pending_reassign', 'reassigned'];
 
 function uniqueIds(ids = []) {
   return [...new Set((ids || []).filter(Boolean))];
@@ -41,6 +41,34 @@ function uniqueIds(ids = []) {
 function overlaps(startA, endA, startB, endB) {
   const normalize = (value) => String(value).slice(0, 5);
   return normalize(startA) < normalize(endB) && normalize(endA) > normalize(startB);
+}
+
+function formatTimeHHMM(value) {
+  return value ? String(value).slice(0, 5) : null;
+}
+
+function timeToMinutes(value) {
+  const [hours, minutes] = formatTimeHHMM(value).split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+function toDateOnly(value) {
+  if (!value) return null;
+  if (typeof value === 'string') return value.slice(0, 10);
+  return value.toISOString().slice(0, 10);
+}
+
+function addDays(dateString, days) {
+  const [year, month, day] = toDateOnly(dateString).split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return date.toISOString().slice(0, 10);
+}
+
+function formatScheduleForMessage(sessionOrCandidate) {
+  const dayOrder = sessionOrCandidate.day_order_name
+    ? ` (${sessionOrCandidate.day_order_name})`
+    : '';
+  return `${toDateOnly(sessionOrCandidate.date)}${dayOrder}, ${formatTimeHHMM(sessionOrCandidate.start_time)} - ${formatTimeHHMM(sessionOrCandidate.end_time)}`;
 }
 
 function parseFromHeader(fromValue) {
@@ -107,22 +135,26 @@ async function getSessionWithLock(sessionId) {
 async function getCounsellorInfo(counsellorId) {
   const { data, error } = await supabase
     .from('counsellor_profiles')
-    .select('user_id, name, department')
+    .select('user_id, name, department, gmail')
     .eq('user_id', counsellorId)
     .single();
 
   if (error || !data) {
+    const email = await getUserEmail(counsellorId);
     return {
       id: counsellorId,
       name: 'Counsellor',
-      department: null
+      department: null,
+      email
     };
   }
 
+  const fallbackEmail = await getUserEmail(counsellorId);
   return {
     id: data.user_id,
     name: data.name,
-    department: data.department
+    department: data.department,
+    email: data.gmail || fallbackEmail
   };
 }
 
@@ -288,7 +320,7 @@ async function finalizeIfReady(sessionId) {
     session_id: sessionId,
     notification_type: 'session_reassigned',
     title: 'Session Reassigned',
-    message: `Your session remains at the same time with ${counsellor.name}.`,
+    message: `Your session has been scheduled with ${counsellor.name} on ${formatScheduleForMessage(data)}.`,
     data: {
       counsellor_name: counsellor.name,
       date: data.date,
@@ -303,7 +335,7 @@ async function finalizeIfReady(sessionId) {
     session_id: sessionId,
     notification_type: 'session_reassigned',
     title: 'Reassigned Session Confirmed',
-    message: `${student.name} confirmed the reassigned session.`,
+    message: `${student.name}'s reassigned session is confirmed for ${formatScheduleForMessage(data)}.`,
     data: {
       student_name: student.name,
       date: data.date,
@@ -311,6 +343,44 @@ async function finalizeIfReady(sessionId) {
       end_time: data.end_time
     }
   });
+
+  const studentEmail = await getUserEmail(data.student_id);
+
+  if (studentEmail) {
+    await sendEmail({
+      from: emailFrom,
+      to: studentEmail,
+      subject: 'Counselling Session Reassigned',
+      text: `Your counselling session has been scheduled with ${counsellor.name} on ${formatScheduleForMessage(data)}.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Counselling Session Reassigned</h2>
+          <p>Your counselling session has been scheduled with <strong>${counsellor.name}</strong>.</p>
+          <p><strong>Schedule:</strong> ${formatScheduleForMessage(data)}</p>
+        </div>
+      `
+    }).catch((mailError) => {
+      console.error('Student reassignment confirmed email error:', mailError);
+    });
+  }
+
+  if (counsellor.email) {
+    await sendEmail({
+      from: emailFrom,
+      to: counsellor.email,
+      subject: 'Counselling Session Confirmed',
+      text: `${student.name}'s counselling session is confirmed for ${formatScheduleForMessage(data)}.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Counselling Session Confirmed</h2>
+          <p><strong>${student.name}</strong>'s counselling session is confirmed.</p>
+          <p><strong>Schedule:</strong> ${formatScheduleForMessage(data)}</p>
+        </div>
+      `
+    }).catch((mailError) => {
+      console.error('Counsellor reassignment confirmed email error:', mailError);
+    });
+  }
 
   await logSessionAudit({
     session_id: sessionId,
@@ -326,6 +396,53 @@ async function finalizeIfReady(sessionId) {
   return data;
 }
 
+async function buildDayOrderSearchPlan(session) {
+  const { data: dayOrders, error } = await supabase
+    .from('day_orders')
+    .select('id, order_name, order_number')
+    .eq('is_active', true)
+    .order('order_number', { ascending: true });
+
+  if (error) {
+    console.error('Load day orders error:', error);
+    throw new Error('Failed to load day orders');
+  }
+
+  const activeDayOrders = dayOrders || [];
+  if (activeDayOrders.length === 0) {
+    return [{
+      day_order_id: session.day_order_id,
+      day_order_name: null,
+      order_number: null,
+      date: toDateOnly(session.date),
+      dayOffset: 0
+    }];
+  }
+
+  const startIndex = activeDayOrders.findIndex((dayOrder) => dayOrder.id === session.day_order_id);
+
+  if (startIndex === -1) {
+    return activeDayOrders.map((dayOrder, index) => ({
+      day_order_id: dayOrder.id,
+      day_order_name: dayOrder.order_name,
+      order_number: dayOrder.order_number,
+      date: addDays(session.date, index),
+      dayOffset: index
+    }));
+  }
+
+  return activeDayOrders.map((_, offset) => {
+    const dayOrder = activeDayOrders[(startIndex + offset) % activeDayOrders.length];
+    return {
+      day_order_id: dayOrder.id,
+      day_order_name: dayOrder.order_name,
+      order_number: dayOrder.order_number,
+      date: addDays(session.date, offset),
+      dayOffset: offset
+    };
+  });
+}
+
 async function findAvailableCounsellor(session, excludedCounsellorIds = []) {
   const excludedIds = uniqueIds([
     session.counsellor_id,
@@ -333,33 +450,33 @@ async function findAvailableCounsellor(session, excludedCounsellorIds = []) {
     ...(excludedCounsellorIds || [])
   ]);
 
-  const { data: counsellors, error: counsellorError } = await supabase
-    .from('counsellor_profiles')
-    .select('id, user_id, name, department, created_at')
-    .order('created_at', { ascending: true });
+  const searchPlan = await buildDayOrderSearchPlan(session);
+  const candidateDates = uniqueIds(searchPlan.map((entry) => entry.date));
+
+  const [
+    { data: counsellors, error: counsellorError },
+    { data: availabilityRows, error: availabilityError },
+    { data: appointments, error: appointmentError }
+  ] = await Promise.all([
+    supabase
+      .from('counsellor_profiles')
+      .select('id, user_id, name, department, created_at')
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('counsellor_availability')
+      .select('counsellor_id, day_order_id, start_time, end_time, is_available')
+      .eq('is_available', true),
+    supabase
+      .from('appointments')
+      .select('id, counsellor_id, date, start_time, end_time, status')
+      .in('date', candidateDates)
+      .in('status', ACTIVE_SESSION_STATUSES)
+  ]);
 
   if (counsellorError) {
     console.error('Find counsellors error:', counsellorError);
     throw new Error('Failed to load counsellors');
   }
-
-  let availabilityQuery = supabase
-    .from('counsellor_availability')
-    .select('counsellor_id, day_order_id, start_time, end_time, is_available')
-    .eq('is_available', true);
-
-  if (session.day_order_id) {
-    availabilityQuery = availabilityQuery.eq('day_order_id', session.day_order_id);
-  }
-
-  const [{ data: availabilityRows, error: availabilityError }, { data: sameTimeAppointments, error: appointmentError }] = await Promise.all([
-    availabilityQuery,
-    supabase
-      .from('appointments')
-      .select('id, counsellor_id, start_time, end_time, status')
-      .eq('date', session.date)
-      .in('status', ACTIVE_SESSION_STATUSES)
-  ]);
 
   if (availabilityError) {
     console.error('Find counsellor availability error:', availabilityError);
@@ -371,49 +488,74 @@ async function findAvailableCounsellor(session, excludedCounsellorIds = []) {
     throw new Error('Failed to check counsellor availability');
   }
 
-  const candidate = (counsellors || []).find((profile) => {
-    if (excludedIds.includes(profile.user_id)) {
-      return false;
+  const candidates = [];
+  const now = new Date();
+
+  for (const planEntry of searchPlan) {
+    const slotsForDayOrder = (availabilityRows || []).filter((slot) => slot.day_order_id === planEntry.day_order_id);
+
+    for (const profile of counsellors || []) {
+      if (excludedIds.includes(profile.user_id)) {
+        continue;
+      }
+
+      const profileKeys = [profile.id, profile.user_id];
+      const matchingSlots = slotsForDayOrder.filter((slot) => profileKeys.includes(slot.counsellor_id));
+
+      for (const slot of matchingSlots) {
+        const startTime = formatTimeHHMM(slot.start_time);
+        const endTime = formatTimeHHMM(slot.end_time);
+
+        if (!startTime || !endTime || startTime >= endTime) {
+          continue;
+        }
+
+        if (getDateTime(planEntry.date, endTime) <= now) {
+          continue;
+        }
+
+        const hasConflict = (appointments || []).some((appointment) => {
+          if (appointment.id === session.id || appointment.counsellor_id !== profile.user_id) {
+            return false;
+          }
+
+          return toDateOnly(appointment.date) === planEntry.date
+            && overlaps(appointment.start_time, appointment.end_time, startTime, endTime);
+        });
+
+        if (hasConflict) {
+          continue;
+        }
+
+        candidates.push({
+          counsellor_id: profile.user_id,
+          name: profile.name,
+          department: profile.department,
+          date: planEntry.date,
+          day_order_id: planEntry.day_order_id,
+          day_order_name: planEntry.day_order_name,
+          order_number: planEntry.order_number,
+          start_time: startTime,
+          end_time: endTime,
+          dayOffset: planEntry.dayOffset,
+          timeScore: planEntry.dayOffset === 0
+            ? Math.abs(timeToMinutes(startTime) - timeToMinutes(session.start_time))
+            : timeToMinutes(startTime),
+          counsellorCreatedAt: profile.created_at || ''
+        });
+      }
     }
+  }
 
-    const profileKeys = [profile.id, profile.user_id];
-    const hasSlot = (availabilityRows || []).some((slot) => {
-      if (!profileKeys.includes(slot.counsellor_id)) {
-        return false;
-      }
+  candidates.sort((a, b) => (
+    a.dayOffset - b.dayOffset
+    || a.timeScore - b.timeScore
+    || a.start_time.localeCompare(b.start_time)
+    || a.counsellorCreatedAt.localeCompare(b.counsellorCreatedAt)
+    || a.name.localeCompare(b.name)
+  ));
 
-      return !session.day_order_id || slot.day_order_id === session.day_order_id
-        ? String(slot.start_time).slice(0, 5) <= String(session.start_time).slice(0, 5) &&
-            String(slot.end_time).slice(0, 5) >= String(session.end_time).slice(0, 5)
-        : false;
-    });
-
-    if (!hasSlot) {
-      return false;
-    }
-
-    const hasConflict = (sameTimeAppointments || []).some((appointment) => {
-      if (appointment.id === session.id) {
-        return false;
-      }
-
-      if (appointment.counsellor_id !== profile.user_id) {
-        return false;
-      }
-
-      return overlaps(appointment.start_time, appointment.end_time, session.start_time, session.end_time);
-    });
-
-    return !hasConflict;
-  });
-
-  return candidate
-    ? {
-        counsellor_id: candidate.user_id,
-        name: candidate.name,
-        department: candidate.department
-      }
-    : null;
+  return candidates[0] || null;
 }
 
 async function assignNextCounsellor(session, options = {}) {
@@ -450,7 +592,7 @@ async function assignNextCounsellor(session, options = {}) {
       session_id: data.id,
       notification_type: 'session_cancelled',
       title: 'Session Cancelled',
-      message: 'No other counsellor was available at the same time. Please reschedule your session.',
+      message: 'A replacement counsellor is not available right now. Please book a session later.',
       data: {
         date: data.date,
         start_time: data.start_time,
@@ -458,6 +600,25 @@ async function assignNextCounsellor(session, options = {}) {
         reason
       }
     });
+
+    const studentEmail = await getUserEmail(data.student_id);
+    if (studentEmail) {
+      await sendEmail({
+        from: emailFrom,
+        to: studentEmail,
+        subject: 'Counselling Session Could Not Be Reassigned',
+        text: 'The counsellor is not available right now. Please book a session later.',
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2>Counselling Session Update</h2>
+            <p>The counsellor is not available right now.</p>
+            <p>Please book a session later from the website.</p>
+          </div>
+        `
+      }).catch((mailError) => {
+        console.error('Student unavailable email error:', mailError);
+      });
+    }
 
     await logSessionAudit({
       session_id: data.id,
@@ -473,7 +634,7 @@ async function assignNextCounsellor(session, options = {}) {
     return {
       session: data,
       assignedCounsellor: null,
-      message: 'No counsellor available. Session marked as cancelled.'
+      message: 'No counsellor available. Student has been asked to book later.'
     };
   }
 
@@ -485,6 +646,12 @@ async function assignNextCounsellor(session, options = {}) {
       reassigned_counsellor_id: candidate.counsellor_id,
       counsellor_approved: false,
       student_approved: false,
+      date: candidate.date,
+      day_order_id: candidate.day_order_id,
+      start_time: candidate.start_time,
+      end_time: candidate.end_time,
+      start_datetime: getDateTime(candidate.date, candidate.start_time).toISOString(),
+      end_datetime: getDateTime(candidate.date, candidate.end_time).toISOString(),
       reassignment_attempted_counsellor_ids: nextAttemptedIds,
       updated_at: new Date().toISOString()
     })
@@ -497,24 +664,45 @@ async function assignNextCounsellor(session, options = {}) {
     throw new Error('Failed to assign next counsellor');
   }
 
-  const student = await getStudentInfo(data.student_id);
-  await resolveCurrentCandidateNotification(data.id, candidate.counsellor_id);
+  await resolveNotificationsByType(data.id, data.student_id, ['student_reassignment_approval', 'student_confirmation_pending']);
   await createNotification({
-    recipient_id: candidate.counsellor_id,
+    recipient_id: data.student_id,
     sender_id: actorId,
     session_id: data.id,
-    notification_type: 'reassignment_request',
-    title: 'Session Reassignment Request',
-    message: `${student.name} needs a session at the same time. Do you want to take it?`,
+    notification_type: 'student_reassignment_approval',
+    title: 'New Counsellor Available',
+    message: `${candidate.name} is available on ${formatScheduleForMessage(candidate)}. If you are comfortable taking counselling from them, please approve on the website.`,
     data: {
-      student_name: student.name,
+      counsellor_name: candidate.name,
+      day_order_id: candidate.day_order_id,
+      day_order_name: candidate.day_order_name,
       date: data.date,
       start_time: data.start_time,
       end_time: data.end_time
     },
     action_required: true,
-    expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
+    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
   });
+
+  const studentEmail = await getUserEmail(data.student_id);
+  if (studentEmail) {
+    await sendEmail({
+      from: emailFrom,
+      to: studentEmail,
+      subject: 'Counselling Reassignment Approval Needed',
+      text: `${candidate.name} is available on ${formatScheduleForMessage(candidate)}. If you are comfortable taking counselling from them, please open the website and approve to proceed.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Counselling Reassignment Approval Needed</h2>
+          <p>Your counsellor cancelled the session.</p>
+          <p><strong>${candidate.name}</strong> is available on <strong>${formatScheduleForMessage(candidate)}</strong>.</p>
+          <p>If you are comfortable taking counselling from them, please open the website and approve to proceed.</p>
+        </div>
+      `
+    }).catch((mailError) => {
+      console.error('Student reassignment offer email error:', mailError);
+    });
+  }
 
   await logSessionAudit({
     session_id: data.id,
@@ -525,14 +713,18 @@ async function assignNextCounsellor(session, options = {}) {
     new_status: 'pending_reassign',
     reason,
     metadata: {
-      assigned_counsellor_id: candidate.counsellor_id
+      assigned_counsellor_id: candidate.counsellor_id,
+      candidate_date: candidate.date,
+      candidate_start_time: candidate.start_time,
+      candidate_end_time: candidate.end_time,
+      candidate_day_order_id: candidate.day_order_id
     }
   });
 
   return {
     session: data,
     assignedCounsellor: candidate,
-    message: `Reassignment request sent to ${candidate.name}.`
+    message: `Student approval request sent for ${candidate.name}.`
   };
 }
 
@@ -588,6 +780,15 @@ async function handleCounsellorResponse(sessionId, counsellorId, response) {
   }
 
   if (response === 'accept') {
+    if (!session.student_approved) {
+      await resolveCurrentCandidateNotification(sessionId, counsellorId);
+      return {
+        status: session.status,
+        message: 'The student has not approved this reassignment yet.',
+        session
+      };
+    }
+
     if (session.counsellor_approved) {
       await resolveCurrentCandidateNotification(sessionId, counsellorId);
       return {
@@ -622,47 +823,6 @@ async function handleCounsellorResponse(sessionId, counsellorId, response) {
     }
 
     await resolveCurrentCandidateNotification(sessionId, counsellorId);
-    await resolveNotificationsByType(sessionId, data.student_id, ['student_reassignment_approval', 'student_confirmation_pending']);
-
-    const counsellor = await getCounsellorInfo(counsellorId);
-    await createNotification({
-      recipient_id: data.student_id,
-      sender_id: counsellorId,
-      session_id: data.id,
-      notification_type: 'student_confirmation_pending',
-      title: 'New Counsellor Available',
-      message: `Counsellor A has cancelled. ${counsellor.name} is available at the same time. Do you want to continue with ${counsellor.name}?`,
-      data: {
-        counsellor_name: counsellor.name,
-        date: data.date,
-        start_time: data.start_time,
-        end_time: data.end_time
-      },
-      action_required: true,
-      expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
-    });
-
-    const studentEmail = await getUserEmail(data.student_id);
-    if (studentEmail) {
-      await sendEmail({
-        from: emailFrom,
-        to: studentEmail,
-        subject: 'Counselling Reassignment Approval Needed',
-        text: `Your counsellor cancelled. ${counsellor.name} is available on ${data.date} from ${String(data.start_time).slice(0, 5)} to ${String(data.end_time).slice(0, 5)}. Open your dashboard to accept or reject the rescheduled session.`,
-        html: `
-          <div style="font-family: Arial, sans-serif; padding: 20px;">
-            <h2>Counselling Reassignment Approval Needed</h2>
-            <p>Your original counsellor cancelled the session.</p>
-            <p><strong>${counsellor.name}</strong> is available at the same time.</p>
-            <p><strong>Date:</strong> ${data.date}</p>
-            <p><strong>Time:</strong> ${String(data.start_time).slice(0, 5)} - ${String(data.end_time).slice(0, 5)}</p>
-            <p>Please open your dashboard to accept or reject this rescheduled session.</p>
-          </div>
-        `
-      }).catch((mailError) => {
-        console.error('Student reassignment email error:', mailError);
-      });
-    }
 
     await logSessionAudit({
       session_id: sessionId,
@@ -673,10 +833,14 @@ async function handleCounsellorResponse(sessionId, counsellorId, response) {
       new_status: data.status
     });
 
+    const finalized = await finalizeIfReady(sessionId);
+
     return {
-      status: data.status,
-      message: 'Counsellor accepted. Waiting for student approval.',
-      session: data
+      status: finalized.status,
+      message: finalized.status === 'reassigned'
+        ? 'Counsellor accepted. Session reassigned successfully.'
+        : 'Counsellor response recorded.',
+      session: finalized
     };
   }
 
@@ -734,8 +898,8 @@ async function handleStudentResponse(sessionId, studentId, response) {
     };
   }
 
-  if (!session.counsellor_approved || !session.reassigned_counsellor_id) {
-    throw new Error('A counsellor must accept before the student can respond');
+  if (!session.reassigned_counsellor_id) {
+    throw new Error('No replacement counsellor is available for this request');
   }
 
   if (response === 'accept') {
@@ -765,6 +929,48 @@ async function handleStudentResponse(sessionId, studentId, response) {
 
     await resolveNotificationsByType(sessionId, studentId, ['student_reassignment_approval', 'student_confirmation_pending']);
 
+    const [student, counsellor] = await Promise.all([
+      getStudentInfo(studentId),
+      getCounsellorInfo(data.reassigned_counsellor_id)
+    ]);
+
+    await resolveCurrentCandidateNotification(sessionId, data.reassigned_counsellor_id);
+    await createNotification({
+      recipient_id: data.reassigned_counsellor_id,
+      sender_id: studentId,
+      session_id: data.id,
+      notification_type: 'reassignment_request',
+      title: 'Session Reassignment Request',
+      message: `${student.name} is comfortable proceeding with you on ${formatScheduleForMessage(data)}. Do you want to take this counselling session?`,
+      data: {
+        student_name: student.name,
+        date: data.date,
+        start_time: data.start_time,
+        end_time: data.end_time
+      },
+      action_required: true,
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    });
+
+    if (counsellor.email) {
+      await sendEmail({
+        from: emailFrom,
+        to: counsellor.email,
+        subject: 'Counselling Reassignment Request',
+        text: `${student.name} is comfortable proceeding with you on ${formatScheduleForMessage(data)}. Please open the website and accept or reject this counselling request.`,
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2>Counselling Reassignment Request</h2>
+            <p><strong>${student.name}</strong> is comfortable proceeding with you.</p>
+            <p><strong>Schedule:</strong> ${formatScheduleForMessage(data)}</p>
+            <p>Please open the website and accept or reject this counselling request.</p>
+          </div>
+        `
+      }).catch((mailError) => {
+        console.error('Counsellor reassignment request email error:', mailError);
+      });
+    }
+
     await logSessionAudit({
       session_id: sessionId,
       action: 'student_accept',
@@ -774,14 +980,10 @@ async function handleStudentResponse(sessionId, studentId, response) {
       new_status: data.status
     });
 
-    const finalized = await finalizeIfReady(sessionId);
-
     return {
-      status: finalized.status,
-      message: finalized.status === 'reassigned'
-        ? 'Session reassigned successfully.'
-        : 'Student response recorded.',
-      session: finalized
+      status: data.status,
+      message: 'Student approved. Waiting for counsellor acceptance.',
+      session: data
     };
   }
 
@@ -804,20 +1006,22 @@ async function handleStudentResponse(sessionId, studentId, response) {
     throw new Error('Failed to reject reassignment');
   }
 
-  const counsellor = await getCounsellorInfo(session.reassigned_counsellor_id);
-  await createNotification({
-    recipient_id: counsellor.id,
-    sender_id: studentId,
-    session_id: sessionId,
-    notification_type: 'student_rejected',
-    title: 'Student Declined Reassignment',
-    message: `The student did not accept counselling with ${counsellor.name}. No meeting has been scheduled.`,
-    data: {
-      date: data.date,
-      start_time: data.start_time,
-      end_time: data.end_time
-    }
-  });
+  if (session.counsellor_approved) {
+    const counsellor = await getCounsellorInfo(session.reassigned_counsellor_id);
+    await createNotification({
+      recipient_id: counsellor.id,
+      sender_id: studentId,
+      session_id: sessionId,
+      notification_type: 'student_rejected',
+      title: 'Student Declined Reassignment',
+      message: `The student did not accept counselling with ${counsellor.name}. No meeting has been scheduled.`,
+      data: {
+        date: data.date,
+        start_time: data.start_time,
+        end_time: data.end_time
+      }
+    });
+  }
 
   await logSessionAudit({
     session_id: sessionId,

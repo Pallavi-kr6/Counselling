@@ -86,6 +86,12 @@ const ReassignmentNotificationCard = ({ notification, onAccept, onReject }) => {
       </div>
 
       <div className="card-details">
+        {notification.data?.student_name && (
+          <div className="detail-item">
+            <span className="detail-label">Student:</span>
+            <span className="detail-value">{notification.data.student_name}</span>
+          </div>
+        )}
         <div className="detail-item">
           <span className="detail-label">Date:</span>
           <span className="detail-value">

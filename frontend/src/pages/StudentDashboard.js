@@ -159,7 +159,7 @@ const StudentDashboard = () => {
       setPendingReassignmentNotification(null);
       setReassignmentMessage(
         response === 'accept'
-          ? 'Session accepted. Your meeting has been reassigned at the same time.'
+          ? 'Request approved. We have asked the counsellor to confirm this session.'
           : 'Request rejected. No meeting has been scheduled.'
       );
       fetchStudentDashboard();
@@ -274,6 +274,7 @@ const StudentDashboard = () => {
                 <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: '1.6' }}>
                   Do you want to continue the session on{' '}
                   {pendingReassignmentNotification.data?.date && new Date(pendingReassignmentNotification.data.date).toLocaleDateString()}{' '}
+                  {pendingReassignmentNotification.data?.day_order_name ? `(${pendingReassignmentNotification.data.day_order_name}) ` : ''}
                   from {pendingReassignmentNotification.data?.start_time} to {pendingReassignmentNotification.data?.end_time} with{' '}
                   {pendingReassignmentNotification.data?.counsellor_name || 'the available counsellor'}?
                 </p>

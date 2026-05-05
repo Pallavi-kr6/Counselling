@@ -105,7 +105,7 @@ const StudentConfirmationModal = ({ isOpen, notification, onClose, onSuccess }) 
                 </h3>
                 <p className="result-message">
                   {result.type === 'confirmed'
-                    ? 'Your session will proceed at the scheduled time with your new counsellor.'
+                    ? 'We have asked the counsellor to confirm this session.'
                     : 'Request rejected. No meeting has been scheduled.'}
                 </p>
               </motion.div>
@@ -120,7 +120,7 @@ const StudentConfirmationModal = ({ isOpen, notification, onClose, onSuccess }) 
                     <div className="info-content">
                       <p className="info-title">Your original counsellor has cancelled.</p>
                       <p className="info-text">
-                        {notification.data?.counsellor_name || 'Another counsellor'} is available at the same time. Would you like to continue with them?
+                        {notification.data?.counsellor_name || 'Another counsellor'} is available for another slot. Would you like to continue with them?
                       </p>
                     </div>
                   </div>
@@ -132,6 +132,10 @@ const StudentConfirmationModal = ({ isOpen, notification, onClose, onSuccess }) 
                       <span className="value">
                         {notification.data?.date && new Date(notification.data.date).toLocaleDateString()}
                       </span>
+                    </div>
+                    <div className="info-row">
+                      <span className="label">Day Order:</span>
+                      <span className="value">{notification.data?.day_order_name || 'Available day order'}</span>
                     </div>
                     <div className="info-row">
                       <span className="label">Time:</span>
