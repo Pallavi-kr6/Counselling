@@ -5,7 +5,6 @@ import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FiHome,
   FiUser,
   FiCalendar,
   FiHeart,
@@ -38,7 +37,6 @@ const Navbar = () => {
   };
 
   const baseNavItems = [
-    { path: '/', icon: FiHome, label: t('nav.home') },
     ...(user ? [{ path: '/dashboard', icon: FiSettings, label: 'Dashboard' }] : []),
     { path: '/profile', icon: FiUser, label: t('nav.profile') },
     { path: '/appointments', icon: FiCalendar, label: t('nav.appointments') }

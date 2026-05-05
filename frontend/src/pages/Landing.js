@@ -1,53 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiCalendar, FiUsers, FiHeart, FiArrowRight, FiCheckCircle } from 'react-icons/fi';
+import { FiCalendar, FiUsers, FiHeart, FiCheckCircle } from 'react-icons/fi';
 import './Landing.css';
-
-const professionals = [
-  {
-    id: 1,
-    name: 'Dr. V.M Gayathri',
-    role: 'Associate Professor',
-    image: '/counsellors/gayathri.png',
-    specialty: 'Networking & Comm (NWC)'
-  },
-  {
-    id: 2,
-    name: 'Dr. A.Helen Victoria',
-    role: 'Associate Professor',
-    image: '/counsellors/helen.png',
-    specialty: 'Networking & Comm (NWC)'
-  },
-  {
-    id: 3,
-    name: 'Dr. P.Supraja',
-    role: 'Associate Professor',
-    image: '/counsellors/supraja.png',
-    specialty: 'Value Education Cell'
-  },
-  {
-    id: 4,
-    name: 'Dr. A Arun',
-    role: 'Associate Professor',
-    image: '/counsellors/arun.png',
-    specialty: 'Networking & Comm (NWC)'
-  },
-  {
-    id: 5,
-    name: 'Dr. M.Vaishnavi Moorthy',
-    role: 'Associate Professor',
-    image: '/counsellors/vaishnavi.png',
-    specialty: 'Networking & Comm (NWC)'
-  },
-  {
-    id: 6,
-    name: 'Dr. Lakshmi Narayanan K',
-    role: 'Associate Professor',
-    image: '/counsellors/lakshmi.png',
-    specialty: 'Networking & Comm (NWC)'
-  }
-];
 
 const Landing = () => {
   const navigate = useNavigate();

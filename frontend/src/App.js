@@ -53,6 +53,7 @@ function PrivateRoute({ children }) {
 
 function AnimatedRoutes() {
   const location = useLocation();
+  const { user, loading } = useAuth();
   
   return (
     <AnimatePresence mode="wait">
@@ -65,19 +66,19 @@ function AnimatedRoutes() {
         <Route 
           path="/" 
           element={
-            <>
-              <Navbar />
+            loading ? (
+              <div className="loading">Loading...</div>
+            ) : user ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
               <PageWrapper><Landing /></PageWrapper>
-            </>
+            )
           } 
         />
         <Route 
           path="/professionals" 
           element={
-            <>
-              <Navbar />
-              <PageWrapper><Professionals /></PageWrapper>
-            </>
+            <PageWrapper><Professionals /></PageWrapper>
           } 
         />
         <Route
