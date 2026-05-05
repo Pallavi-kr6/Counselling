@@ -17,8 +17,8 @@ ADD COLUMN end_datetime TIMESTAMP WITH TIME ZONE;
 -- This assumes all existing appointments are stored with valid date/time
 UPDATE appointments
 SET 
-  start_datetime = (date || 'T' || start_time)::TIMESTAMP WITH TIME ZONE,
-  end_datetime = (date || 'T' || end_time)::TIMESTAMP WITH TIME ZONE
+  start_datetime = (date + start_time) AT TIME ZONE 'Asia/Kolkata',
+  end_datetime = (date + end_time) AT TIME ZONE 'Asia/Kolkata'
 WHERE date IS NOT NULL 
   AND start_time IS NOT NULL 
   AND end_time IS NOT NULL;
@@ -37,17 +37,21 @@ CREATE INDEX idx_appointments_start_end ON appointments(start_datetime, end_date
 ALTER TABLE appointments
 ADD CONSTRAINT check_appointment_times CHECK (end_datetime > start_datetime);
 
--- Optional: Add trigger to automatically update old fields from new datetime fields
--- This helps with gradual migration to new datetime fields
+-- Keep legacy date/time fields as Asia/Kolkata wall-clock values while storing
+-- datetime columns as UTC instants.
 CREATE OR REPLACE FUNCTION sync_datetime_to_date_time()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF NEW.start_datetime IS NOT NULL THEN
-    NEW.date = DATE(NEW.start_datetime);
-    NEW.start_time = TIME(NEW.start_datetime);
+  IF NEW.date IS NOT NULL AND NEW.start_time IS NOT NULL THEN
+    NEW.start_datetime = (NEW.date + NEW.start_time) AT TIME ZONE 'Asia/Kolkata';
+  ELSIF NEW.start_datetime IS NOT NULL THEN
+    NEW.date = (NEW.start_datetime AT TIME ZONE 'Asia/Kolkata')::DATE;
+    NEW.start_time = (NEW.start_datetime AT TIME ZONE 'Asia/Kolkata')::TIME;
   END IF;
-  IF NEW.end_datetime IS NOT NULL THEN
-    NEW.end_time = TIME(NEW.end_datetime);
+  IF NEW.date IS NOT NULL AND NEW.end_time IS NOT NULL THEN
+    NEW.end_datetime = (NEW.date + NEW.end_time) AT TIME ZONE 'Asia/Kolkata';
+  ELSIF NEW.end_datetime IS NOT NULL THEN
+    NEW.end_time = (NEW.end_datetime AT TIME ZONE 'Asia/Kolkata')::TIME;
   END IF;
   RETURN NEW;
 END;

@@ -1,7 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Fallback to a mock URL if env is not configured yet, preventing app crashes
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://mock.supabase.co';
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'mock-anon-key';
+const requireEnv = (name) => {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing ${name}. Add it to frontend/.env and restart the React dev server.`);
+  }
+  return value;
+};
+
+const supabaseUrl = requireEnv('REACT_APP_SUPABASE_URL');
+const supabaseAnonKey = requireEnv('REACT_APP_SUPABASE_ANON_KEY');
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

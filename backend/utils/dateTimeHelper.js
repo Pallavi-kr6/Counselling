@@ -1,7 +1,11 @@
 /**
  * Date/Time Helper Utility
- * Handles all date/time operations with consistent UTC timezone handling
+ * Handles all date/time operations with consistent India-local scheduling.
+ * Appointment date/time fields are entered and displayed as Asia/Kolkata
+ * wall-clock values, while datetime fields store the matching UTC instant.
  */
+
+const APP_TIMEZONE_OFFSET = '+05:30';
 
 /**
  * Combine date and time into a proper DateTime object
@@ -22,7 +26,7 @@ function getDateTime(date, time) {
     String(timeParts[2] || '00').padStart(2, '0')
   ].join(':');
 
-  const isoString = `${date}T${normalizedTime}`;
+  const isoString = `${date}T${normalizedTime}${APP_TIMEZONE_OFFSET}`;
   return new Date(isoString);
 }
 

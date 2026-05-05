@@ -424,7 +424,7 @@ router.post('/book', verifyToken, async (req, res) => {
       const createZoomMeeting = zoomHelpers.createZoomMeeting;
       
       const topic = `Counselling Session - ${counsellorProfile?.name || 'Counsellor'}`;
-      const meetingDateTime = new Date(`${date}T${startTime}`);
+      const meetingDateTime = getDateTime(date, startTime);
       const startTimeISO = meetingDateTime.toISOString();
       
       // Calculate duration in minutes
@@ -1763,7 +1763,7 @@ router.post('/book-day-order', verifyToken, async (req, res) => {
       const createZoomMeeting = zoomHelpers.createZoomMeeting;
       
       const topic = `Counselling Session - ${counsellorProfile?.name || 'Counsellor'}`;
-      const meetingDateTime = new Date(`${date}T${start_time}`);
+      const meetingDateTime = getDateTime(date, start_time);
       const startTimeISO = meetingDateTime.toISOString();
       
       const start = new Date(`2000-01-01T${start_time}`);

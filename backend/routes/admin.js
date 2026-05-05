@@ -138,7 +138,7 @@ router.get('/watch-flags', verifyToken, requireStaff, async (req, res) => {
         mood_window_start, mood_window_end,
         acknowledged, acknowledged_at, resolved, resolved_at, notes,
         created_at, updated_at,
-        student_profiles!student_watch_flags_student_id_fkey (
+        student_profiles!student_watch_flags_student_profile_fkey (
           name, year, course, department
         ),
         users!student_watch_flags_student_id_fkey (
