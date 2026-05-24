@@ -14,6 +14,27 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+const isSupabaseFetchFailure = (error) => {
+  const details = `${error?.message || ''} ${error?.details || ''} ${error?.cause?.message || ''}`;
+  return details.includes('fetch failed') || details.includes('UND_ERR_CONNECT_TIMEOUT') || details.includes('Connect Timeout');
+};
+
+async function runSupabaseQuery(queryFactory, attempts = 2) {
+  let lastResult;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    lastResult = await queryFactory();
+
+    if (!lastResult?.error || !isSupabaseFetchFailure(lastResult.error) || attempt === attempts) {
+      return lastResult;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, attempt * 750));
+  }
+
+  return lastResult;
+}
+
 const cleanEnv = (value) => (typeof value === 'string' ? value.trim() : value);
 const emailPort = Number(cleanEnv(process.env.EMAIL_PORT)) || 587;
 const isSecureSmtp = process.env.EMAIL_SECURE
@@ -1070,19 +1091,26 @@ router.get('/progress-reports/:id/pdf', verifyToken, async (req, res) => {
 
     console.log('Generating PDF for report:', reportId, 'counsellor:', counsellorId);
 
-    // Get the report
-    const { data: report, error } = await supabase
+    // Get the report. Supabase occasionally returns transient undici fetch
+    // timeouts before the query reaches PostgREST, so retry once before
+    // surfacing a service-unavailable response.
+    const { data: report, error } = await runSupabaseQuery(() => supabase
       .from('progress_reports')
       .select('*')
       .eq('id', reportId)
       .eq('counsellor_id', counsellorId)
-      .single();
+      .single());
 
     console.log('Report data:', report, 'Error:', error);
-if (error) {
-  console.error(error);
-  return res.status(500).json({ error: error.message });
-}
+    if (error) {
+      console.error('Progress report PDF fetch error:', error);
+      if (isSupabaseFetchFailure(error)) {
+        return res.status(503).json({
+          error: 'Unable to reach the database while generating the PDF. Please retry in a moment.'
+        });
+      }
+      return res.status(500).json({ error: error.message });
+    }
     if (!report) {
       return res.status(404).json({ error: 'Report not found' });
     }

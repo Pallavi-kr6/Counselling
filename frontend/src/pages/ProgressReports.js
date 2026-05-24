@@ -5,6 +5,23 @@ import { FiFileText, FiDownload, FiPlus, FiChevronLeft, FiTrash2, FiCheckCircle,
 import api from '../utils/api';
 import './ProgressReports.css';
 
+const getPdfErrorMessage = async (err) => {
+  const fallback = 'Failed to download PDF. Please try again.';
+  const responseData = err?.response?.data;
+
+  if (responseData instanceof Blob) {
+    try {
+      const text = await responseData.text();
+      const parsed = JSON.parse(text);
+      return parsed.error || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  return responseData?.error || err?.message || fallback;
+};
+
 const ProgressReports = () => {
   const { user } = useAuth();
   const [reports, setReports] = useState([]);
@@ -144,7 +161,12 @@ const ProgressReports = () => {
                               link.setAttribute('download', `progress-report-${report.student_name}-${report.week_start}.pdf`);
                               document.body.appendChild(link);
                               link.click();
-                            } catch (err) { console.error('PDF Download failed', err); }
+                              document.body.removeChild(link);
+                              window.URL.revokeObjectURL(url);
+                            } catch (err) {
+                              console.error('PDF Download failed', err);
+                              alert(await getPdfErrorMessage(err));
+                            }
                           }}><FiDownload /></button>
                         </div>
                       </motion.div>
@@ -157,9 +179,14 @@ const ProgressReports = () => {
         ) : (
           <ProgressReportForm 
             report={currentReport}
-            onSave={async (updated) => {
+            onSave={async (updated, reportId) => {
               try {
-                await api.post('/appointments/progress-reports', updated);
+                let finalReportId = reportId;
+                if (!finalReportId) {
+                  // If no report ID provided, save first
+                  const response = await api.post('/appointments/progress-reports', updated);
+                  finalReportId = response.data.report.id;
+                }
                 await fetchReports();
                 setShowForm(false);
               } catch (err) { console.error(err); }
@@ -174,6 +201,9 @@ const ProgressReports = () => {
 
 const ProgressReportForm = ({ report, onSave, onCancel }) => {
   const [formData, setFormData] = useState(report);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(null);
+  const [savedReportId, setSavedReportId] = useState(report?.id);
 
   const updateArray = (field, index, key, val) => {
     const arr = [...(formData[field] || [])];
@@ -195,6 +225,41 @@ const ProgressReportForm = ({ report, onSave, onCancel }) => {
       ...formData,
       counseling_support: { ...formData.counseling_support, [key]: val }
     });
+  };
+
+  const handleFinalizeAndSave = async () => {
+    setIsSaving(true);
+    setSaveStatus(null);
+    try {
+      const response = await api.post('/appointments/progress-reports', formData);
+      setSavedReportId(response.data.report.id);
+      setFormData(response.data.report);
+      setSaveStatus({ type: 'success', message: '✓ Report saved successfully!' });
+      setTimeout(() => setSaveStatus(null), 3000);
+    } catch (err) {
+      console.error(err);
+      setSaveStatus({ type: 'error', message: '✗ Failed to save report' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!savedReportId) return;
+    try {
+      const response = await api.get(`/appointments/progress-reports/${savedReportId}/pdf`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `progress-report-${formData.student_name}-${formData.week_start}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF Download failed', err);
+      alert(await getPdfErrorMessage(err));
+    }
   };
 
   const issueOptions = [
@@ -408,8 +473,22 @@ const ProgressReportForm = ({ report, onSave, onCancel }) => {
         </div>
 
         <div className="form-actions-footer">
-          <button className="btn btn-ghost" onClick={onCancel}>Discard Changes</button>
-          <button className="btn btn-primary" onClick={() => onSave(formData)}>Finalize & Save Report</button>
+          {saveStatus && (
+            <div className={`save-status ${saveStatus.type}`}>
+              {saveStatus.message}
+            </div>
+          )}
+          <div className="button-group">
+            <button className="btn btn-ghost" onClick={onCancel} disabled={isSaving}>Discard Changes</button>
+            <button className="btn btn-primary" onClick={handleFinalizeAndSave} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Finalize & Save Report'}
+            </button>
+            {savedReportId && (
+              <button className="btn btn-success" onClick={handleDownloadPDF} title="Download finalized report as PDF">
+                <FiDownload /> Download PDF
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </motion.div>
