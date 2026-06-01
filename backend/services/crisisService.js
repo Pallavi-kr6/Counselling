@@ -15,25 +15,13 @@
 'use strict';
 
 const { createClient } = require('@supabase/supabase-js');
-const nodemailer       = require('nodemailer');
-const axios            = require('axios');
+const { sendEmail, emailFrom } = require('./emailService');
 
 // ── Supabase (service role — bypasses RLS) ───────────────────
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-// ── Email transport (SMTP fallback) ─────────────────────────
-const emailTransporter = nodemailer.createTransport({
-  host:   process.env.EMAIL_HOST,
-  port:   Number(process.env.EMAIL_PORT)  || 587,
-  secure: process.env.EMAIL_SECURE === 'true' || Number(process.env.EMAIL_PORT) === 465,
-  auth: {
-    user: process.env.EMAIL_USER || 'apikey',
-    pass: process.env.EMAIL_PASS || process.env.SENDGRID_API_KEY,
-  },
-});
 
 // ── Crisis keyword list ──────────────────────────────────────
 const CRISIS_KEYWORDS = [
@@ -365,38 +353,21 @@ function buildCrisisEmailHtml({
 // ── 7. Send email ────────────────────────────────────────────
 
 async function sendCrisisEmail({ adminEmail, counsellorEmail, ...emailData }) {
-  const from       = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@counselling.edu';
   const recipients = [adminEmail, counsellorEmail].filter(Boolean);
   const subject    = `🚨 URGENT: Crisis Alert — Student ${(emailData.studentId || '').slice(0, 8)}`;
   const html       = buildCrisisEmailHtml(emailData);
 
-  const sendgridKey = process.env.SENDGRID_API_KEY || process.env.EMAIL_PASS;
-
-  if (sendgridKey && String(sendgridKey).startsWith('SG.')) {
-    try {
-      await axios.post(
-        'https://api.sendgrid.com/v3/mail/send',
-        {
-          personalizations: [{ to: recipients.map(email => ({ email })) }],
-          from: { email: from.match(/<(.+)>$/)?.[1] || from },
-          subject,
-          content: [{ type: 'text/html', value: html }],
-        },
-        { headers: { Authorization: `Bearer ${sendgridKey}`, 'Content-Type': 'application/json' }, timeout: 15000 }
-      );
-      console.log('📧 Crisis email sent via SendGrid to:', recipients.join(', '));
-      return true;
-    } catch (err) {
-      console.error('❌ SendGrid crisis email failed:', err.response?.data || err.message);
-    }
-  }
-
   try {
-    await emailTransporter.sendMail({ from, to: recipients.join(', '), subject, html });
-    console.log('📧 Crisis email sent via SMTP to:', recipients.join(', '));
+    await sendEmail({
+      from: emailFrom,
+      to: recipients,
+      subject,
+      html
+    });
+    console.log('📧 Crisis email sent to:', recipients.join(', '));
     return true;
   } catch (err) {
-    console.error('❌ SMTP crisis email failed:', err.message);
+    console.error('❌ Crisis email failed:', err.message);
     return false;
   }
 }

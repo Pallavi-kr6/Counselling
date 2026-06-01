@@ -4,7 +4,7 @@ const cron = require('node-cron');
 const { createClient } = require('@supabase/supabase-js');
 const PDFDocument = require('pdfkit');
 const SVGtoPDF = require('svg-to-pdfkit');
-const nodemailer = require('nodemailer');
+const { sendEmail, emailFrom } = require('../services/emailService');
 const fs = require('fs');
 const path = require('path');
 
@@ -12,16 +12,6 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: Number(process.env.EMAIL_PORT) || 587,
-  secure: process.env.EMAIL_SECURE === 'true' || Number(process.env.EMAIL_PORT) === 465,
-  auth: {
-    user: process.env.EMAIL_USER || 'apikey',
-    pass: process.env.EMAIL_PASS || process.env.SENDGRID_API_KEY,
-  },
-});
 
 async function runMonthlyReport() {
   console.log('📊 Generating Monthly Counselling PDF Report...');
@@ -183,9 +173,9 @@ async function runMonthlyReport() {
     const emails = config?.fallback_admin_email ? [config.fallback_admin_email] : ['admin@college.edu', 'chairperson@college.edu'];
 
     // Send email
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
-      to: emails.join(', '),
+    await sendEmail({
+      from: emailFrom,
+      to: emails,
       subject: `Monthly Counselling Report: ${firstDayLastMonth.toLocaleString('default', { month: 'long' })}`,
       text: 'Please find the attached monthly clinical report summarizing student engagement, crisis alerts, and mood telemetry.',
       attachments: [

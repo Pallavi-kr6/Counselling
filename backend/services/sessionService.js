@@ -1,36 +1,11 @@
 const { createClient } = require('@supabase/supabase-js');
-const nodemailer = require('nodemailer');
-const axios = require('axios');
 const { getDateTime } = require('../utils/dateTimeHelper');
+const { sendEmail, emailFrom } = require('./emailService');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-const cleanEnv = (value) => (typeof value === 'string' ? value.trim() : value);
-const emailPort = Number(cleanEnv(process.env.EMAIL_PORT)) || 587;
-const isSecureSmtp = process.env.EMAIL_SECURE
-  ? cleanEnv(process.env.EMAIL_SECURE) === 'true'
-  : emailPort === 465;
-const emailFrom = cleanEnv(process.env.EMAIL_FROM) || cleanEnv(process.env.EMAIL_USER);
-const smtpUser = cleanEnv(process.env.EMAIL_USER) || 'apikey';
-const smtpPass = cleanEnv(process.env.EMAIL_PASS) || cleanEnv(process.env.SENDGRID_API_KEY);
-const sendgridApiKey = cleanEnv(process.env.SENDGRID_API_KEY) || smtpPass;
-const useSendgridHttp = Boolean(sendgridApiKey);
-
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: emailPort,
-  secure: isSecureSmtp,
-  auth: {
-    user: smtpUser,
-    pass: smtpPass
-  },
-  tls: process.env.NODE_ENV === 'production'
-    ? undefined
-    : { rejectUnauthorized: false }
-});
 
 const ACTIVE_SESSION_STATUSES = ['scheduled', 'confirmed', 'pending_reassign', 'reassigned'];
 
@@ -71,51 +46,7 @@ function formatScheduleForMessage(sessionOrCandidate) {
   return `${toDateOnly(sessionOrCandidate.date)}${dayOrder}, ${formatTimeHHMM(sessionOrCandidate.start_time)} - ${formatTimeHHMM(sessionOrCandidate.end_time)}`;
 }
 
-function parseFromHeader(fromValue) {
-  const fromString = String(fromValue || '').trim();
-  const parsed = fromString.match(/^(.*)<(.+)>$/);
-  if (!parsed) {
-    return { email: fromString };
-  }
-  return {
-    name: parsed[1].trim().replace(/^"|"$/g, ''),
-    email: parsed[2].trim()
-  };
-}
 
-async function sendEmail(mailOptions) {
-  if (!mailOptions?.to || !emailFrom) {
-    return false;
-  }
-
-  if (useSendgridHttp) {
-    const from = parseFromHeader(mailOptions.from || emailFrom);
-    const to = Array.isArray(mailOptions.to) ? mailOptions.to : [mailOptions.to];
-    await axios.post(
-      'https://api.sendgrid.com/v3/mail/send',
-      {
-        personalizations: [{ to: to.filter(Boolean).map((email) => ({ email })) }],
-        from,
-        subject: mailOptions.subject,
-        content: [
-          ...(mailOptions.text ? [{ type: 'text/plain', value: mailOptions.text }] : []),
-          ...(mailOptions.html ? [{ type: 'text/html', value: mailOptions.html }] : [])
-        ]
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${sendgridApiKey}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 15000
-      }
-    );
-    return true;
-  }
-
-  await transporter.sendMail(mailOptions);
-  return true;
-}
 
 async function getSessionWithLock(sessionId) {
   const { data, error } = await supabase
