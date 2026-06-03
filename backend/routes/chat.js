@@ -293,7 +293,9 @@ router.post('/crisis-log', authenticateOptional, async (req, res) => {
     });
 
     // Also insert into legacy crisis_flags for backwards compatibility
-    await supabase.from('crisis_flags').insert({ user_id: userId, message }).catch(() => {});
+    try {
+      await supabase.from('crisis_flags').insert({ user_id: userId, message });
+    } catch (e) {}
 
     res.json({
       success: true,

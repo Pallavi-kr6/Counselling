@@ -11,6 +11,7 @@
 const socketIO = require('socket.io');
 
 const connectedUsers = new Map(); // userId -> socket
+let ioInstance = null;
 
 /**
  * Initialize Socket.io with Express server
@@ -29,6 +30,7 @@ function initializeSocket(httpServer) {
     },
     transports: ['websocket', 'polling']
   });
+  ioInstance = io;
 
   // Middleware to verify user
   io.use((socket, next) => {
@@ -131,7 +133,7 @@ function notifyStudentOfCancellation(io, studentId, sessionData) {
 /**
  * Notify counsellor of session confirmation
  */
-function notifyCounsellor OfConfirmation(io, counsellorId, sessionData) {
+function notifyCounsellorOfConfirmation(io, counsellorId, sessionData) {
   notifyUser(io, counsellorId, {
     id: sessionData.id,
     title: 'Session Confirmed',
@@ -161,13 +163,18 @@ function joinSessionRoom(socket, sessionId, userId) {
   console.log(`[Socket] User ${userId} joined session ${sessionId} room`);
 }
 
+function getIo() {
+  return ioInstance;
+}
+
 module.exports = {
   initializeSocket,
+  getIo,
   notifyUser,
   notifyCounsellor,
   notifyStudentOfAcceptance,
   notifyStudentOfCancellation,
-  notifyCounsellorOfConfirmation: notifyCounsellor OfConfirmation,
+  notifyCounsellorOfConfirmation,
   broadcastSessionUpdate,
   joinSessionRoom,
   connectedUsers

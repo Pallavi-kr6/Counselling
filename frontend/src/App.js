@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { WellnessProvider } from './context/WellnessContext';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
@@ -26,6 +27,7 @@ import PHQ9Form from './pages/PHQ9Form';
 import Landing from './pages/Landing';
 import Professionals from './pages/Professionals';
 import Navbar from './components/Navbar';
+import ReminderBanner from './components/ReminderBanner';
 import './App.css';
 
 const PageWrapper = ({ children }) => (
@@ -288,14 +290,17 @@ function GlobalFooter() {
 function App() {
   return (
     <ThemeProvider>
-      <Router>
-        <div className="App" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ flex: 1 }}>
-            <AnimatedRoutes />
+      <WellnessProvider>
+        <Router>
+          <div className="App" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+            <ReminderBanner />
+            <div style={{ flex: 1 }}>
+              <AnimatedRoutes />
+            </div>
+            <GlobalFooter />
           </div>
-          <GlobalFooter />
-        </div>
-      </Router>
+        </Router>
+      </WellnessProvider>
     </ThemeProvider>
   );
 }

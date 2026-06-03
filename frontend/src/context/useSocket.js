@@ -8,7 +8,11 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import io from 'socket.io-client';
 import { useAuth } from './AuthContext';
 
-const SOCKET_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+const getSocketUrl = () => {
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+  return apiUrl.replace(/\/api$/, '');
+};
+const SOCKET_URL = getSocketUrl();
 
 export const useSocket = () => {
   const { user, token } = useAuth();

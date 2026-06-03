@@ -24,6 +24,7 @@ import {
 import './Dashboard.css';
 import CancelSessionModal from '../components/CancelSessionModal';
 import NotificationCenter from '../components/NotificationCenter';
+import useSocket from '../context/useSocket';
 
 // ── Tag badge helper ──────────────────────────────────────────
 const TAG_CONFIG = {
@@ -184,6 +185,7 @@ function WatchFlagCard({ flag, onAcknowledge, onResolve }) {
 // ── Main dashboard ────────────────────────────────────────────
 const CounsellorDashboard = () => {
   const { user } = useAuth();
+  const { socket } = useSocket();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [counsellorAppointments, setCounsellorAppointments] = useState([]);
@@ -258,21 +260,38 @@ const CounsellorDashboard = () => {
       .then(res => setLiveAlerts(res.data.alerts || []))
       .catch(err => console.error('Live alerts initial fetch error:', err));
 
-    // Real-time subscription
+    // Real-time subscription (Supabase)
     const channel = supabase
       .channel('crisis-alerts-feed')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'crisis_alerts' }, payload => {
-        setLiveAlerts(prev => [payload.new, ...prev]);
+        setLiveAlerts(prev => {
+          if (prev.some(a => a.id === payload.new.id)) return prev;
+          return [payload.new, ...prev];
+        });
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'crisis_alerts' }, payload => {
         setLiveAlerts(prev => prev.map(a => a.id === payload.new.id ? payload.new : a));
       })
       .subscribe();
 
+    // Real-time Socket.io subscription fallback
+    if (socket) {
+      socket.on('live_crisis_alert', (newAlert) => {
+        console.log('[Socket] Received live_crisis_alert:', newAlert);
+        setLiveAlerts(prev => {
+          if (prev.some(a => a.id === newAlert.id)) return prev;
+          return [newAlert, ...prev];
+        });
+      });
+    }
+
     return () => {
       supabase.removeChannel(channel);
+      if (socket) {
+        socket.off('live_crisis_alert');
+      }
     };
-  }, []);
+  }, [socket]);
 
   const toggleAvailability = async () => {
     try {

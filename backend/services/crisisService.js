@@ -16,6 +16,7 @@
 
 const { createClient } = require('@supabase/supabase-js');
 const { sendEmail, emailFrom } = require('./emailService');
+const { getIo } = require('./socketService');
 
 // ── Supabase (service role — bypasses RLS) ───────────────────
 const supabase = createClient(
@@ -63,14 +64,27 @@ function scanForCrisis(message) {
 async function findAvailableCounsellor() {
   try {
     // 1. Fetch available counsellors
-    const nowISO = new Date().toISOString();
     const { data: counsellors, error } = await supabase
       .from('counsellor_profiles')
-      .select('id, name, user_id, users!inner(email)')
+      .select('id, name, user_id')
       .eq('is_available', true);
 
     if (error || !counsellors || counsellors.length === 0) {
       throw new Error('No available counsellor');
+    }
+
+    // Fetch emails for these user IDs manually to prevent PostgREST schema cache join issues
+    const userIds = counsellors.map(c => c.user_id).filter(Boolean);
+    const { data: usersData } = await supabase
+      .from('users')
+      .select('id, email')
+      .in('id', userIds);
+
+    const emailMap = {};
+    if (usersData) {
+      usersData.forEach(u => {
+        emailMap[u.id] = u.email;
+      });
     }
 
     // 2. Fetch active assigned alerts counts for today to balance load
@@ -99,7 +113,7 @@ async function findAvailableCounsellor() {
     counsellors.sort((a, b) => loads[a.id] - loads[b.id]);
     
     const picked = counsellors[0];
-    return { id: picked.id, name: picked.name || 'Duty Counsellor', email: picked.users?.email || null };
+    return { id: picked.id, name: picked.name || 'Duty Counsellor', email: emailMap[picked.user_id] || null };
   } catch (_) { 
     // Fallback: Query college_config for designated fallback email
     try {
@@ -162,26 +176,79 @@ async function fetchSessionHistory(studentId, sessionId = null) {
   }
 }
 
+// Helper to get or create a designated placeholder anonymous student user in users table
+async function getOrCreateAnonymousUserId() {
+  try {
+    const { data: existing } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', 'anonymous@college.edu')
+      .maybeSingle();
+
+    if (existing) return existing.id;
+
+    // Create auth user first
+    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+      email: 'anonymous@college.edu',
+      password: 'AnonymousPlaceholderPassword123!',
+      email_confirm: true,
+      user_metadata: { user_type: 'student' }
+    });
+
+    const userId = authUser?.user?.id;
+    if (userId) {
+      await supabase.from('users').insert({
+        id: userId,
+        email: 'anonymous@college.edu',
+        user_type: 'student',
+        is_anonymous: true
+      });
+      return userId;
+    }
+  } catch (err) {
+    console.error('Error getting/creating anonymous user placeholder:', err);
+  }
+  return null;
+}
+
 // ── 4. Insert crisis_alerts row ──────────────────────────────
 
 async function insertCrisisAlert({ studentId, studentEmail, messageSnippet, keywordsMatched, counsellor }) {
-  if (!studentId) return null;
+  const insertData = {
+    student_email:            studentEmail || null,
+    message_snippet:          messageSnippet.slice(0, 280),
+    keywords_matched:         keywordsMatched,
+    assigned_counsellor_id:   counsellor.id   || null,
+    assigned_counsellor_name: counsellor.name || null,
+    severity:                 'HIGH',
+    notification_sent:        false,
+    resolved:                 false,
+  };
 
-  const { data, error } = await supabase
+  if (studentId) {
+    insertData.student_id = studentId;
+  }
+
+  let { data, error } = await supabase
     .from('crisis_alerts')
-    .insert({
-      student_id:               studentId,
-      student_email:            studentEmail || null,
-      message_snippet:          messageSnippet.slice(0, 280),
-      keywords_matched:         keywordsMatched,
-      assigned_counsellor_id:   counsellor.id   || null,
-      assigned_counsellor_name: counsellor.name || null,
-      severity:                 'HIGH',
-      notification_sent:        false,
-      resolved:                 false,
-    })
+    .insert(insertData)
     .select('id')
     .single();
+
+  if (error && error.code === '23502') {
+    // Null value in column student_id violates not-null constraint: fallback to placeholder user
+    const anonId = await getOrCreateAnonymousUserId();
+    if (anonId) {
+      insertData.student_id = anonId;
+      const retry = await supabase
+        .from('crisis_alerts')
+        .insert(insertData)
+        .select('id')
+        .single();
+      data = retry.data;
+      error = retry.error;
+    }
+  }
 
   if (error) {
     console.error('❌ crisis_alerts insert error:', error.message);
@@ -208,19 +275,26 @@ async function saveSessionTranscript({
   flaggedMessage,
   keywordsMatched,
 }) {
-  if (!studentId) return null;
+  const insertData = {
+    session_id:      sessionId      || null,
+    crisis_alert_id: alertId        || null,
+    severity:        'critical',
+    messages:        messages,
+    flagged_message: flaggedMessage.slice(0, 500),
+    keywords_matched: keywordsMatched,
+  };
 
-  const { data, error } = await supabase
+  if (studentId) {
+    insertData.student_id = studentId;
+  } else {
+    // If studentId is null, use the anonymous fallback placeholder
+    const anonId = await getOrCreateAnonymousUserId();
+    if (anonId) insertData.student_id = anonId;
+  }
+
+  let { data, error } = await supabase
     .from('session_transcripts')
-    .insert({
-      student_id:      studentId,
-      session_id:      sessionId      || null,
-      crisis_alert_id: alertId        || null,
-      severity:        'critical',
-      messages:        messages,
-      flagged_message: flaggedMessage.slice(0, 500),
-      keywords_matched: keywordsMatched,
-    })
+    .insert(insertData)
     .select('id')
     .single();
 
@@ -484,6 +558,24 @@ async function handleCrisisIfDetected({ message, studentId, studentEmail, sessio
     flaggedMessage:  message,
     keywordsMatched: matched,
   });
+
+  // 4b. Broadcast via Socket.io for robust real-time updates
+  const io = getIo();
+  if (io && alertId) {
+    io.emit('live_crisis_alert', {
+      id: alertId,
+      student_id: studentId,
+      student_email: studentEmail,
+      message_snippet: message.slice(0, 280),
+      keywords_matched: matched,
+      assigned_counsellor_id: counsellor.id,
+      assigned_counsellor_name: counsellor.name,
+      severity: 'HIGH',
+      resolved: false,
+      created_at: new Date().toISOString()
+    });
+    console.log('[Socket] Broadcasted live_crisis_alert for ID:', alertId);
+  }
 
   // 5. Notifications (fire-and-forget — don't block the chat response)
   const adminEmail      = process.env.ADMIN_EMAIL || process.env.EMAIL_FROM;

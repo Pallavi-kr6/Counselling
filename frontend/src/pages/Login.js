@@ -198,8 +198,37 @@ const Login = () => {
                 <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
                   {loading ? 'Verifying...' : 'Portal Entrance'} <FiArrowRight />
                 </button>
-                <div className="form-footer">
-                  <p>Access reserved for verified campus counsellors.</p>
+                <div className="form-footer" style={{ marginTop: '1.25rem' }}>
+                  <p style={{ marginBottom: '0.5rem' }}>Access reserved for verified campus counsellors.</p>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, teacherId: 'TRIAL001' })}
+                    style={{
+                      background: 'rgba(20, 184, 166, 0.1)',
+                      color: '#14b8a6',
+                      border: '1px solid rgba(20, 184, 166, 0.2)',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s',
+                      outline: 'none'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = 'rgba(20, 184, 166, 0.18)';
+                      e.currentTarget.style.borderColor = 'rgba(20, 184, 166, 0.35)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = 'rgba(20, 184, 166, 0.1)';
+                      e.currentTarget.style.borderColor = 'rgba(20, 184, 166, 0.2)';
+                    }}
+                  >
+                    Use Trial ID: <strong>TRIAL001</strong>
+                  </button>
                 </div>
               </form>
             )}

@@ -58,11 +58,47 @@ body {
   font-family: 'OpenDyslexic', sans-serif !important;
 }
 
+/* Dark theme */
+[data-theme='dark'] {
+  --primary: #2ebaa8;
+  --primary-dark: #239c8c;
+  --primary-light: rgba(46, 186, 168, 0.15);
+  --secondary: #a78bfa;
+  --secondary-light: rgba(167, 139, 250, 0.15);
+  --accent: #93c5fd;
+  --bg-gradient: linear-gradient(145deg, #0f172a 0%, #0d1f1d 50%, #131620 100%);
+  --sidebar-bg: rgba(15, 23, 42, 0.8);
+  --glass-bg: rgba(15, 23, 42, 0.75);
+  --glass-border: rgba(46, 196, 182, 0.12);
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --shadow-soft: 0 10px 40px -10px rgba(0, 0, 0, 0.4);
+}
+
+/* High contrast overrides */
+[data-high-contrast='true'] {
+  --text-primary: #000000;
+  --text-secondary: #1a1a1a;
+  --glass-bg: #ffffff;
+  --glass-border: #000000;
+  --bg-gradient: #ffffff;
+  filter: contrast(1.15);
+}
+
+[data-high-contrast='true'][data-theme='dark'] {
+  --text-primary: #ffffff;
+  --text-secondary: #e0e0e0;
+  --glass-bg: #000000;
+  --glass-border: #ffffff;
+  --bg-gradient: #000000;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Poppins', sans-serif;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
+
 
 /* Glassmorphism Utilities - Emotionally Safe & Soft */
 .glass-card {
@@ -81,6 +117,16 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: var(--border-radius-md);
 }
+
+[data-theme='dark'] .glass-morphism {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(46, 196, 182, 0.12);
+}
+
+[data-theme='dark'] body {
+  color: var(--text-primary);
+}
+
 
 /* Common Components */
 .btn {

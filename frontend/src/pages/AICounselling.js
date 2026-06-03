@@ -5,6 +5,7 @@ import { FiSend, FiMessageCircle, FiHeart, FiTrash2, FiWind, FiMenu, FiAlertTria
 import { Filter } from 'bad-words';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { useWellness } from '../context/WellnessContext';
 import './AICounselling.css';
 
 // Profanity filter — initialised once at module level (not inside the component)
@@ -249,9 +250,17 @@ const AICounselling = () => {
   const [isSessionClosed, setIsSessionClosed] = useState(false);
   const [preChatMoodDone, setPreChatMoodDone] = useState(false);
   const [submittingMood, setSubmittingMood] = useState(false);
-  const [isAnonymous, setIsAnonymous] = useState(false);
-  const [hasConsented, setHasConsented] = useState(null); // null = checking, true = yes, false = no
   const { user } = useAuth();
+  const { prefs } = useWellness();
+  const [isAnonymous, setIsAnonymous] = useState(() => {
+    // seed from wellness preference; can be overridden per session
+    try {
+      const key = user?.id ? `wellnessPrefs_${user.id}` : 'wellnessPrefs_guest';
+      const stored = localStorage.getItem(key);
+      return stored ? JSON.parse(stored).anonymousMode || false : false;
+    } catch { return false; }
+  });
+  const [hasConsented, setHasConsented] = useState(null); // null = checking, true = yes, false = no
   const chatEndRef       = useRef(null);
 
   // Fetch consent status on mount
@@ -288,10 +297,18 @@ const AICounselling = () => {
     chatHistoryRef.current = chatHistory;
   }, [chatHistory]);
 
+  // Sync anonymous mode when wellness pref changes
   useEffect(() => {
-    localStorage.setItem('aiCounsellingChat', JSON.stringify(chatHistory));
+    setIsAnonymous(prefs.anonymousMode);
+  }, [prefs.anonymousMode]);
+
+  useEffect(() => {
+    // Only save history if sessionNotes is on
+    if (prefs.sessionNotes) {
+      localStorage.setItem('aiCounsellingChat', JSON.stringify(chatHistory));
+    }
     scrollToBottom();
-  }, [chatHistory, loading]);
+  }, [chatHistory, loading, prefs.sessionNotes]);
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });

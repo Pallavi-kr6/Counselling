@@ -166,13 +166,29 @@ router.post('/student/send-otp', async (req, res) => {
       text: `Your OTP code is: ${otp}. This code will expire in 10 minutes.`
     };
 
-    const info = await sendEmail(mailOptions);
-    console.log('✅ Email sent successfully. Via:', info.via || 'smtp', '| MessageId:', info.messageId || 'n/a');
+    let emailSent = false;
+    let emailError = null;
+    try {
+      const info = await sendEmail(mailOptions);
+      console.log('✅ Email sent successfully. Via:', info.via || 'smtp', '| MessageId:', info.messageId || 'n/a');
+      emailSent = true;
+    } catch (err) {
+      console.error('⚠️ Failed to send email via provider:', err.message);
+      emailError = err;
+    }
 
-    res.json({ 
-      success: true, 
-      message: 'OTP code sent to your email. Please check your inbox (and spam folder).' 
-    });
+    if (!emailSent) {
+      console.log(`💡 [DEV FALLBACK] OTP is: ${otp}. You can copy this code to proceed.`);
+      res.json({ 
+        success: true, 
+        message: `[Dev Mode] Failed to send email: ${emailError?.message || 'Unknown error'}. Active OTP code is printed to the console: ${otp}` 
+      });
+    } else {
+      res.json({ 
+        success: true, 
+        message: 'OTP code sent to your email. Please check your inbox (and spam folder).' 
+      });
+    }
   } catch (error) {
     console.error('❌ Send OTP error:', error);
     console.error('Error details:', {
@@ -278,13 +294,29 @@ router.post('/student/send-signup-otp', async (req, res) => {
       text: `Your OTP code is: ${otp}. This code will expire in 10 minutes.`
     };
 
-    const info = await sendEmail(mailOptions);
-    console.log('✅ Signup OTP email sent. Via:', info.via || 'smtp', '| MessageId:', info.messageId || 'n/a');
+    let emailSent = false;
+    let emailError = null;
+    try {
+      const info = await sendEmail(mailOptions);
+      console.log('✅ Signup OTP email sent. Via:', info.via || 'smtp', '| MessageId:', info.messageId || 'n/a');
+      emailSent = true;
+    } catch (err) {
+      console.error('⚠️ Failed to send signup email via provider:', err.message);
+      emailError = err;
+    }
 
-    res.json({ 
-      success: true, 
-      message: 'OTP code sent to your email. Please check your inbox (and spam folder).' 
-    });
+    if (!emailSent) {
+      console.log(`💡 [DEV FALLBACK] OTP is: ${otp}. You can copy this code to proceed.`);
+      res.json({ 
+        success: true, 
+        message: `[Dev Mode] Failed to send email: ${emailError?.message || 'Unknown error'}. Active OTP code is printed to the console: ${otp}` 
+      });
+    } else {
+      res.json({ 
+        success: true, 
+        message: 'OTP code sent to your email. Please check your inbox (and spam folder).' 
+      });
+    }
   } catch (error) {
     console.error('❌ Send signup OTP error:', error);
     
@@ -583,9 +615,25 @@ router.post('/student/forgot-password', async (req, res) => {
       text: `Reset your password: ${resetLink}`
     };
 
-    await sendEmail(mailOptions);
+    let emailSent = false;
+    let emailError = null;
+    try {
+      await sendEmail(mailOptions);
+      emailSent = true;
+    } catch (err) {
+      console.error('⚠️ Failed to send password reset email:', err.message);
+      emailError = err;
+    }
 
-    res.json({ success: true, message: 'Password reset link sent to email' });
+    if (!emailSent) {
+      console.log(`💡 [DEV FALLBACK] Password Reset Link: ${resetLink}`);
+      res.json({
+        success: true,
+        message: `[Dev Mode] Failed to send email: ${emailError?.message || 'Unknown error'}. Reset link is printed to the console: ${resetLink}`
+      });
+    } else {
+      res.json({ success: true, message: 'Password reset link sent to email' });
+    }
   } catch (error) {
     console.error('Forgot password error:', error);
     res.status(500).json({ error: 'Failed to send password reset email' });

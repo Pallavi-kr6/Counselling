@@ -1,0 +1,124 @@
+/* ── ReminderBanner ──────────────────────────────────────────── */
+
+.reminder-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3000; /* above navbar (2001) */
+  padding: 0 1rem;
+}
+
+.reminder-banner-inner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: 900px;
+  margin: 0.75rem auto 0;
+  padding: 0.875rem 1.25rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(16px);
+}
+
+/* ── Mood variant ── */
+.mood-banner .reminder-banner-inner {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.92), rgba(251, 191, 36, 0.88));
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #7c2d12;
+}
+
+/* ── Breathing variant ── */
+.breathing-banner .reminder-banner-inner {
+  background: linear-gradient(135deg, rgba(46, 196, 182, 0.92), rgba(99, 102, 241, 0.85));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+/* ── Icon ── */
+.reminder-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Text block ── */
+.reminder-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.reminder-text strong {
+  font-size: 0.9rem;
+  font-weight: 700;
+  display: block;
+  line-height: 1.2;
+}
+
+.reminder-text span {
+  font-size: 0.8rem;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+/* ── Action button ── */
+.reminder-action {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.2s, transform 0.15s;
+  color: inherit;
+}
+
+.reminder-action:hover {
+  background: rgba(255, 255, 255, 0.42);
+  transform: translateY(-1px);
+}
+
+/* ── Dismiss button ── */
+.reminder-dismiss {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s;
+  color: inherit;
+  opacity: 0.8;
+}
+
+.reminder-dismiss:hover {
+  background: rgba(255, 255, 255, 0.35);
+  opacity: 1;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .reminder-banner-inner {
+    flex-wrap: wrap;
+  }
+  .reminder-text { width: 100%; }
+  .reminder-action { flex: 1; justify-content: center; }
+}

@@ -32,6 +32,11 @@ console.log('SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY 
 console.log('GROQ_API_KEY:', process.env.GROQ_API_KEY ? 'loaded' : 'NOT SET');
 
 const app = express();
+const http = require('http');
+const server = http.createServer(app);
+const { initializeSocket } = require('./services/socketService');
+const io = initializeSocket(server);
+app.set('io', io);
 const PORT = process.env.PORT || 5000;
 
 // CORS — allow frontend Render URL + localhost
@@ -89,7 +94,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
   startCronJobs();
 
