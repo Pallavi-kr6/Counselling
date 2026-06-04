@@ -14,7 +14,7 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
-import { FiArrowLeft, FiUser, FiActivity, FiTrendingUp, FiClock, FiCheckCircle, FiCpu, FiFileText, FiAlertTriangle } from 'react-icons/fi';
+import { FiArrowLeft, FiUser, FiActivity, FiTrendingUp, FiClock, FiCheckCircle, FiCpu, FiFileText, FiAlertTriangle, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import { PHQ9_QUESTIONS, PHQ9_OPTION_LABELS, phq9Severity } from '../constants/phq9Questions';
 import './Dashboard.css';
 
@@ -48,6 +48,7 @@ const CounsellorStudentDetail = () => {
   const [brief, setBrief] = useState(null);
   const [briefLoading, setBriefLoading] = useState(false);
   const [questionnaires, setQuestionnaires] = useState([]);
+  const [phq9SectionOpen, setPhq9SectionOpen] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
 
   const fetchDetails = useCallback(async () => {
@@ -56,11 +57,7 @@ const CounsellorStudentDetail = () => {
       setDetails(response.data);
 
       const phqResponse = await api.get(`/appointments/student-phq9/${studentId}`);
-      const scores = phqResponse.data.scores || [];
-      setQuestionnaires(scores);
-      if (scores.length > 0) {
-        setExpandedId(scores[0].id);
-      }
+      setQuestionnaires(phqResponse.data.scores || []);
     } catch (err) {
       console.error(err.response?.data?.error || 'Failed to load student details');
     } finally {
@@ -173,86 +170,121 @@ const CounsellorStudentDetail = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
-              className="phq9-overview-card glass-card"
+              className={`phq9-overview-card glass-card ${phq9SectionOpen ? 'phq9-overview-card--open' : 'phq9-overview-card--collapsed'}`}
             >
-              <div className="card-header">
-                <h2><FiFileText /> Pre-Session Questionnaire (PHQ-9)</h2>
-                {latestQuestionnaire && (
-                  <span className={`phq9-severity-badge severity-${phq9Severity(latestQuestionnaire.total_score).level}`}>
-                    {phq9Severity(latestQuestionnaire.total_score).label} — {latestQuestionnaire.total_score}/27
+              <button
+                type="button"
+                className="phq9-section-toggle"
+                onClick={() => setPhq9SectionOpen((open) => !open)}
+                aria-expanded={phq9SectionOpen}
+              >
+                <div className="phq9-section-toggle-left">
+                  <h2><FiFileText /> Pre-Session Questionnaire (PHQ-9)</h2>
+                  {!phq9SectionOpen && (
+                    <span className="phq9-section-summary">
+                      {questionnaires.length === 0
+                        ? 'No submission yet'
+                        : `${questionnaires.length} submission${questionnaires.length !== 1 ? 's' : ''}`}
+                      {latestQuestionnaire && (
+                        <>
+                          {' · '}
+                          Latest: {latestQuestionnaire.total_score}/27 ({phq9Severity(latestQuestionnaire.total_score).label})
+                        </>
+                      )}
+                    </span>
+                  )}
+                </div>
+                <div className="phq9-section-toggle-right">
+                  {latestQuestionnaire && (
+                    <span className={`phq9-severity-badge severity-${phq9Severity(latestQuestionnaire.total_score).level}`}>
+                      {latestQuestionnaire.total_score}/27
+                    </span>
+                  )}
+                  <span className="phq9-chevron" aria-hidden>
+                    {phq9SectionOpen ? <FiChevronUp /> : <FiChevronDown />}
                   </span>
-                )}
-              </div>
+                </div>
+              </button>
 
-              {questionnaires.length === 0 ? (
-                <p className="phq9-empty-note">
-                  No questionnaire submitted yet. The student completes PHQ-9 right after booking a session with you.
-                </p>
-              ) : (
-                <div className="phq9-submissions-list">
-                  {questionnaires.map((entry) => {
-                    const severity = phq9Severity(entry.total_score);
-                    const isExpanded = expandedId === entry.id;
-                    const responses = entry.responses || [];
+              {phq9SectionOpen && (
+                <div className="phq9-section-body">
+                  {questionnaires.length === 0 ? (
+                    <p className="phq9-empty-note">
+                      No questionnaire submitted yet. The student completes PHQ-9 right after booking a session with you.
+                    </p>
+                  ) : (
+                    <div className="phq9-submissions-list">
+                      {questionnaires.map((entry) => {
+                        const severity = phq9Severity(entry.total_score);
+                        const isExpanded = expandedId === entry.id;
+                        const responses = entry.responses || [];
 
-                    return (
-                      <div key={entry.id} className="phq9-submission-block">
-                        <button
-                          type="button"
-                          className="phq9-submission-header"
-                          onClick={() => setExpandedId(isExpanded ? null : entry.id)}
-                        >
-                          <div>
-                            <strong>{formatSessionDate(entry.appointment_date, entry.appointment_start_time)}</strong>
-                            <span className="phq9-submitted-at">
-                              Submitted {new Date(entry.created_at).toLocaleString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                hour: 'numeric',
-                                minute: '2-digit'
-                              })}
-                            </span>
+                        return (
+                          <div key={entry.id} className={`phq9-submission-block ${isExpanded ? 'phq9-submission-block--open' : ''}`}>
+                            <button
+                              type="button"
+                              className="phq9-submission-header"
+                              onClick={() => setExpandedId(isExpanded ? null : entry.id)}
+                              aria-expanded={isExpanded}
+                            >
+                              <div>
+                                <strong>{formatSessionDate(entry.appointment_date, entry.appointment_start_time)}</strong>
+                                <span className="phq9-submitted-at">
+                                  Submitted {new Date(entry.created_at).toLocaleString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: 'numeric',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                              </div>
+                              <div className="phq9-submission-header-end">
+                                <span className={`phq9-score-pill severity-${severity.level}`}>
+                                  {entry.total_score}/27 — {severity.label}
+                                </span>
+                                <span className="phq9-chevron phq9-chevron--sm" aria-hidden>
+                                  {isExpanded ? <FiChevronUp /> : <FiChevronDown />}
+                                </span>
+                              </div>
+                            </button>
+
+                            {isExpanded && (
+                              <ul className="phq9-answers-list">
+                                {PHQ9_QUESTIONS.map((question, idx) => {
+                                  const score = responses[idx];
+                                  const answerLabel =
+                                    score != null && PHQ9_OPTION_LABELS[score]
+                                      ? PHQ9_OPTION_LABELS[score]
+                                      : 'Not answered';
+                                  const isHighRisk = idx === 8 && score >= 2;
+
+                                  return (
+                                    <li key={idx} className={isHighRisk ? 'phq9-answer-high-risk' : ''}>
+                                      <span className="phq9-q-num">Q{idx + 1}</span>
+                                      <div className="phq9-answer-body">
+                                        <p className="phq9-question-text">{question}</p>
+                                        <p className="phq9-answer-text">
+                                          {answerLabel}
+                                          {score != null && (
+                                            <span className="phq9-answer-score"> ({score})</span>
+                                          )}
+                                        </p>
+                                        {isHighRisk && (
+                                          <p className="phq9-risk-flag">
+                                            <FiAlertTriangle /> Item 9 flagged — review safety during session
+                                          </p>
+                                        )}
+                                      </div>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            )}
                           </div>
-                          <span className={`phq9-score-pill severity-${severity.level}`}>
-                            {entry.total_score}/27 — {severity.label}
-                          </span>
-                        </button>
-
-                        {isExpanded && (
-                          <ul className="phq9-answers-list">
-                            {PHQ9_QUESTIONS.map((question, idx) => {
-                              const score = responses[idx];
-                              const answerLabel =
-                                score != null && PHQ9_OPTION_LABELS[score]
-                                  ? PHQ9_OPTION_LABELS[score]
-                                  : 'Not answered';
-                              const isHighRisk = idx === 8 && score >= 2;
-
-                              return (
-                                <li key={idx} className={isHighRisk ? 'phq9-answer-high-risk' : ''}>
-                                  <span className="phq9-q-num">Q{idx + 1}</span>
-                                  <div className="phq9-answer-body">
-                                    <p className="phq9-question-text">{question}</p>
-                                    <p className="phq9-answer-text">
-                                      {answerLabel}
-                                      {score != null && (
-                                        <span className="phq9-answer-score"> ({score})</span>
-                                      )}
-                                    </p>
-                                    {isHighRisk && (
-                                      <p className="phq9-risk-flag">
-                                        <FiAlertTriangle /> Item 9 flagged — review safety during session
-                                      </p>
-                                    )}
-                                  </div>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        )}
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>

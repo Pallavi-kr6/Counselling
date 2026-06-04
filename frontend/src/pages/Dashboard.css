@@ -620,17 +620,76 @@
 .note-placeholder { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; font-style: italic; }
 
 .phq9-overview-card {
-  padding: 2rem;
+  padding: 0;
   margin-bottom: 2rem;
+  overflow: hidden;
 }
 
-.phq9-overview-card .card-header {
+.phq9-overview-card--collapsed {
+  margin-bottom: 1.25rem;
+}
+
+.phq9-section-toggle {
+  width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
   gap: 1rem;
-  margin-bottom: 1.25rem;
+  padding: 1.25rem 1.5rem;
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.phq9-section-toggle:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.phq9-section-toggle-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.phq9-section-toggle-left h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.phq9-section-summary {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.phq9-section-toggle-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.phq9-chevron {
+  display: flex;
+  align-items: center;
+  color: var(--primary);
+  font-size: 1.25rem;
+}
+
+.phq9-chevron--sm {
+  font-size: 1rem;
+  opacity: 0.85;
+}
+
+.phq9-section-body {
+  padding: 0 1.5rem 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .phq9-empty-note {
@@ -664,6 +723,13 @@
   color: inherit;
   cursor: pointer;
   text-align: left;
+}
+
+.phq9-submission-header-end {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .phq9-submission-header strong {
@@ -766,5 +832,8 @@
   .hero-top { flex-direction: column; text-align: center; }
   .hero-stats { flex-direction: column; }
   .student-detail-view .dashboard-grid { grid-template-columns: 1fr; }
-  .phq9-submission-header { flex-direction: column; align-items: flex-start; }
+  .phq9-section-toggle { flex-wrap: wrap; align-items: flex-start; }
+  .phq9-section-toggle-right { width: 100%; justify-content: space-between; }
+  .phq9-submission-header { flex-wrap: wrap; }
+  .phq9-submission-header-end { width: 100%; justify-content: space-between; }
 }
