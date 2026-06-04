@@ -45,6 +45,7 @@ const Navbar = () => {
   const studentNavItems = [
     { path: '/mood', icon: FiHeart, label: t('nav.mood') },
     { path: '/resources', icon: FiBook, label: t('nav.resources') },
+    { path: '/professionals', icon: FiUsers, label: 'Counsellors' },
     { path: '/emergency', icon: FiPhone, label: t('nav.emergency') },
     { path: '/ai-counselling', icon: FiMessageCircle, label: t('nav.aiCounselling') }
   ];
@@ -113,8 +114,10 @@ const Navbar = () => {
           </motion.button>
 
           <button className="nav-link logout-btn" onClick={handleLogout}>
-            <FiLogOut />
-            <span className="nav-link-text">{t('nav.logout')}</span>
+            <span className="nav-link-content">
+              <FiLogOut />
+              <span className="nav-link-text">{t('nav.logout')}</span>
+            </span>
           </button>
         </div>
 

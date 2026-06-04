@@ -4,6 +4,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { generateCounselingResponse } = require('../services/aiService');
 const { handleCrisisIfDetected } = require('../services/crisisService');
 const { verifyToken } = require('./auth');
+const { sendChatSummaryToCounsellor } = require('../services/summaryService');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -238,6 +239,9 @@ router.post('/', rateLimit, async (req, res) => {
       if (sessionId) {
         analyzeAndLogSentiment(userId, sessionId, message.trim()).catch(err => 
           console.warn('Background sentiment analysis failed:', err)
+        );
+        sendChatSummaryToCounsellor(userId, sessionId).catch(err =>
+          console.warn('Background chat summarization failed:', err)
         );
       }
     }

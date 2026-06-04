@@ -368,6 +368,11 @@ router.post('/book', verifyToken, async (req, res) => {
       .select()
       .single();
 
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ error: error.message });
+    }
+
     console.log('Appointment booked:', { 
       id: appointment?.id, 
       date, 
@@ -377,10 +382,24 @@ router.post('/book', verifyToken, async (req, res) => {
       endDateTime: getDateTime(date, endTime).toISOString()
     });
 
-    if (error) {
-  console.error(error);
-  return res.status(500).json({ error: error.message });
-}
+    // Automatically allocate counsellor to student if not already assigned
+    try {
+      const { data: profile } = await supabase
+        .from('student_profiles')
+        .select('assigned_counsellor_id')
+        .eq('user_id', req.user.userId)
+        .maybeSingle();
+
+      if (profile && !profile.assigned_counsellor_id) {
+        await supabase
+          .from('student_profiles')
+          .update({ assigned_counsellor_id: counsellorId, updated_at: new Date().toISOString() })
+          .eq('user_id', req.user.userId);
+        console.log(`[Allocation] Automatically assigned counsellor ${counsellorId} to student ${req.user.userId}`);
+      }
+    } catch (allocErr) {
+      console.error('Error auto-assigning counsellor on booking:', allocErr);
+    }
 
     // Get student and counsellor details for email
     const { data: student } = await supabase
@@ -680,7 +699,7 @@ router.post('/:id/notes', verifyToken, async (req, res) => {
   }
 });
 
-// Get per-student session counts for a counsellor (all statuses)
+// Get per-student session counts for a counsellor (all statuses) - ONLY for allocated students
 router.get('/counsellor/session-stats', verifyToken, async (req, res) => {
   try {
     if (req.user.userType !== 'counsellor') {
@@ -689,16 +708,34 @@ router.get('/counsellor/session-stats', verifyToken, async (req, res) => {
 
     const counsellorId = req.user.userId;
 
-    // Get all appointments for this counsellor
-    const { data: rows, error } = await supabase
+    // Fetch only student profiles assigned to this counsellor
+    const { data: profiles, error: profileError } = await supabase
+      .from('student_profiles')
+      .select('user_id, name, year, course, department')
+      .eq('assigned_counsellor_id', counsellorId);
+
+    if (profileError) {
+      console.error('Session stats profile fetch error:', profileError);
+      return res.status(500).json({ error: profileError.message });
+    }
+
+    if (!profiles || profiles.length === 0) {
+      return res.json({ stats: [] });
+    }
+
+    const studentIds = profiles.map(p => p.user_id);
+
+    // Fetch all appointments for these students with this counsellor
+    const { data: rows, error: apptError } = await supabase
       .from('appointments')
       .select('student_id, status')
-      .eq('counsellor_id', counsellorId);
+      .eq('counsellor_id', counsellorId)
+      .in('student_id', studentIds);
 
-    if (error) {
-  console.error(error);
-  return res.status(500).json({ error: error.message });
-}
+    if (apptError) {
+      console.error('Session stats appointments fetch error:', apptError);
+      return res.status(500).json({ error: apptError.message });
+    }
 
     const countsMap = new Map();
     (rows || []).forEach((row) => {
@@ -715,39 +752,14 @@ router.get('/counsellor/session-stats', verifyToken, async (req, res) => {
       countsMap.set(key, existing);
     });
 
-    const studentIds = Array.from(countsMap.keys());
-
-    if (studentIds.length === 0) {
-      return res.json({ stats: [] });
-    }
-
-    // Fetch student profiles
-    const { data: profiles, error: profileError } = await supabase
-      .from('student_profiles')
-      .select('user_id, name, year, course, department')
-      .in('user_id', studentIds);
-
-    if (profileError) throw profileError;
-
-    const profileMap = new Map();
-    (profiles || []).forEach((p) => {
-      profileMap.set(p.user_id, {
-        name: p.name,
-        year: p.year,
-        course: p.course,
-        department: p.department
-      });
-    });
-
-    const stats = studentIds.map((id) => {
-      const counts = countsMap.get(id) || { completed: 0, scheduled: 0, cancelled: 0 };
-      const profile = profileMap.get(id) || {};
+    const stats = profiles.map((p) => {
+      const counts = countsMap.get(p.user_id) || { completed: 0, scheduled: 0, cancelled: 0 };
       return {
-        studentId: id,
-        name: profile.name || 'Unknown Student',
-        year: profile.year || null,
-        course: profile.course || null,
-        department: profile.department || null,
+        studentId: p.user_id,
+        name: p.name || 'Unknown Student',
+        year: p.year || null,
+        course: p.course || null,
+        department: p.department || null,
         sessionsCompleted: counts.completed,
         sessionsScheduled: counts.scheduled,
         sessionsCancelled: counts.cancelled
@@ -771,7 +783,26 @@ router.get('/counsellor/student/:studentId', verifyToken, async (req, res) => {
     const counsellorId = req.user.userId;
     const studentId = req.params.studentId;
 
-    // Ensure relationship via at least one appointment
+    // Student profile
+    const { data: profile, error: profileError } = await supabase
+      .from('student_profiles')
+      .select('user_id, name, year, course, department, assigned_counsellor_id')
+      .eq('user_id', studentId)
+      .single();
+
+    if (profileError) {
+      if (profileError.code === 'PGRST116') {
+        return res.status(404).json({ error: 'Student profile not found' });
+      }
+      throw profileError;
+    }
+
+    // Strict Allocation Check: Only the assigned counsellor can view their student
+    if (profile.assigned_counsellor_id !== counsellorId) {
+      return res.status(403).json({ error: 'Not authorized to view this student\'s records. You are not their assigned counsellor.' });
+    }
+
+    // Ensure relationship / get sessions
     const { data: appts, error: apptError } = await supabase
       .from('appointments')
       .select('id, status')
@@ -780,25 +811,12 @@ router.get('/counsellor/student/:studentId', verifyToken, async (req, res) => {
 
     if (apptError) throw apptError;
 
-    if (!appts || appts.length === 0) {
-      return res.status(403).json({ error: 'Not authorized to view this student' });
-    }
-
     const sessionCounts = { completed: 0, scheduled: 0, cancelled: 0 };
-    appts.forEach((a) => {
+    (appts || []).forEach((a) => {
       if (a.status === 'completed') sessionCounts.completed += 1;
       else if (a.status === 'cancelled') sessionCounts.cancelled += 1;
       else sessionCounts.scheduled += 1;
     });
-
-    // Student profile
-    const { data: profile, error: profileError } = await supabase
-      .from('student_profiles')
-      .select('user_id, name, year, course, department')
-      .eq('user_id', studentId)
-      .single();
-
-    if (profileError && profileError.code !== 'PGRST116') throw profileError;
 
     // Recent mood entries (daily check-ins)
     const { data: moods, error: moodError } = await supabase

@@ -59,10 +59,44 @@ function scanForCrisis(message) {
 // ── 2. Available counsellor lookup ──────────────────────────
 
 /**
+ * @param {string|null} studentId
  * @returns {{ id: string|null, name: string|null, email: string|null }}
  */
-async function findAvailableCounsellor() {
+async function findAvailableCounsellor(studentId = null) {
   try {
+    if (studentId) {
+      // 1. Fetch assigned counsellor ID from student_profiles
+      const { data: profile } = await supabase
+        .from('student_profiles')
+        .select('assigned_counsellor_id')
+        .eq('user_id', studentId)
+        .maybeSingle();
+
+      if (profile && profile.assigned_counsellor_id) {
+        // 2. Fetch the counsellor's profile and user email
+        const { data: counsellor } = await supabase
+          .from('counsellor_profiles')
+          .select('id, name, user_id')
+          .eq('user_id', profile.assigned_counsellor_id)
+          .maybeSingle();
+
+        if (counsellor) {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('email')
+            .eq('id', counsellor.user_id)
+            .maybeSingle();
+
+          console.log(`[Crisis Alert] Routing alert directly to allocated counsellor ${counsellor.name} (${counsellor.id})`);
+          return {
+            id: counsellor.id,
+            name: counsellor.name || 'Assigned Counsellor',
+            email: userData?.email || null
+          };
+        }
+      }
+    }
+
     // 1. Fetch available counsellors
     const { data: counsellors, error } = await supabase
       .from('counsellor_profiles')
@@ -526,8 +560,8 @@ async function handleCrisisIfDetected({ message, studentId, studentEmail, sessio
 
   console.warn(`🚨 Crisis keywords detected for student ${studentId || 'anonymous'}:`, matched);
 
-  // 1. Find available counsellor
-  const counsellor = await findAvailableCounsellor();
+  // 1. Find available counsellor (checking assigned first)
+  const counsellor = await findAvailableCounsellor(studentId);
 
   // 1b. Fetch student profile to get roll number / name context
   let studentProfile = null;
