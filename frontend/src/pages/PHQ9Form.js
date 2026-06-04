@@ -3,26 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiCheckCircle, FiChevronRight, FiChevronLeft, FiHeart } from 'react-icons/fi';
 import api from '../utils/api';
+import { PHQ9_QUESTIONS, PHQ9_OPTION_LABELS } from '../constants/phq9Questions';
 import './Dashboard.css';
 
-const questions = [
-  "Little interest or pleasure in doing things",
-  "Feeling down, depressed, or hopeless",
-  "Trouble falling or staying asleep, or sleeping too much",
-  "Feeling tired or having little energy",
-  "Poor appetite or overeating",
-  "Feeling bad about yourself - or that you are a failure or have let yourself or your family down",
-  "Trouble concentrating on things, such as reading the newspaper or watching television",
-  "Moving or speaking so slowly that other people could have noticed? Or the opposite - being so fidgety or restless that you have been moving around a lot more than usual",
-  "Thoughts that you would be better off dead, or of hurting yourself in some way"
-];
+const questions = PHQ9_QUESTIONS;
 
-const options = [
-  { value: 0, label: "Not at all" },
-  { value: 1, label: "Several days" },
-  { value: 2, label: "More than half the days" },
-  { value: 3, label: "Nearly every day" }
-];
+const options = PHQ9_OPTION_LABELS.map((label, value) => ({ value, label }));
 
 const PHQ9Form = () => {
   const navigate = useNavigate();

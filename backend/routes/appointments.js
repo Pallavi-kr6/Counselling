@@ -390,12 +390,12 @@ router.post('/book', verifyToken, async (req, res) => {
         .eq('user_id', req.user.userId)
         .maybeSingle();
 
-      if (profile && !profile.assigned_counsellor_id) {
+      if (profile) {
         await supabase
           .from('student_profiles')
           .update({ assigned_counsellor_id: counsellorId, updated_at: new Date().toISOString() })
           .eq('user_id', req.user.userId);
-        console.log(`[Allocation] Automatically assigned counsellor ${counsellorId} to student ${req.user.userId}`);
+        console.log(`[Allocation] Assigned counsellor ${counsellorId} to student ${req.user.userId}`);
       }
     } catch (allocErr) {
       console.error('Error auto-assigning counsellor on booking:', allocErr);
@@ -708,8 +708,7 @@ router.get('/counsellor/session-stats', verifyToken, async (req, res) => {
 
     const counsellorId = req.user.userId;
 
-    // Fetch only student profiles assigned to this counsellor
-    const { data: profiles, error: profileError } = await supabase
+    const { data: assignedProfiles, error: profileError } = await supabase
       .from('student_profiles')
       .select('user_id, name, year, course, department')
       .eq('assigned_counsellor_id', counsellorId);
@@ -717,6 +716,31 @@ router.get('/counsellor/session-stats', verifyToken, async (req, res) => {
     if (profileError) {
       console.error('Session stats profile fetch error:', profileError);
       return res.status(500).json({ error: profileError.message });
+    }
+
+    const { data: appointmentRows, error: apptListError } = await supabase
+      .from('appointments')
+      .select('student_id')
+      .eq('counsellor_id', counsellorId);
+
+    if (apptListError) {
+      console.error('Session stats appointments list error:', apptListError);
+      return res.status(500).json({ error: apptListError.message });
+    }
+
+    const bookedStudentIds = [...new Set((appointmentRows || []).map((r) => r.student_id).filter(Boolean))];
+
+    let profiles = assignedProfiles || [];
+    if (bookedStudentIds.length > 0) {
+      const assignedIds = new Set(profiles.map((p) => p.user_id));
+      const missingIds = bookedStudentIds.filter((id) => !assignedIds.has(id));
+      if (missingIds.length > 0) {
+        const { data: extraProfiles } = await supabase
+          .from('student_profiles')
+          .select('user_id, name, year, course, department')
+          .in('user_id', missingIds);
+        profiles = [...profiles, ...(extraProfiles || [])];
+      }
     }
 
     if (!profiles || profiles.length === 0) {
@@ -797,11 +821,6 @@ router.get('/counsellor/student/:studentId', verifyToken, async (req, res) => {
       throw profileError;
     }
 
-    // Strict Allocation Check: Only the assigned counsellor can view their student
-    if (profile.assigned_counsellor_id !== counsellorId) {
-      return res.status(403).json({ error: 'Not authorized to view this student\'s records. You are not their assigned counsellor.' });
-    }
-
     // Ensure relationship / get sessions
     const { data: appts, error: apptError } = await supabase
       .from('appointments')
@@ -810,6 +829,13 @@ router.get('/counsellor/student/:studentId', verifyToken, async (req, res) => {
       .eq('student_id', studentId);
 
     if (apptError) throw apptError;
+
+    const hasSessionsWithCounsellor = (appts || []).length > 0;
+    const isAssignedCounsellor = profile.assigned_counsellor_id === counsellorId;
+
+    if (!isAssignedCounsellor && !hasSessionsWithCounsellor) {
+      return res.status(403).json({ error: 'Not authorized to view this student\'s records.' });
+    }
 
     const sessionCounts = { completed: 0, scheduled: 0, cancelled: 0 };
     (appts || []).forEach((a) => {
@@ -1772,6 +1798,25 @@ router.post('/book-day-order', verifyToken, async (req, res) => {
   return res.status(500).json({ error: error.message });
 }
 
+    // Assign booked counsellor so they receive questionnaires and clinical access
+    try {
+      const { data: profile } = await supabase
+        .from('student_profiles')
+        .select('user_id')
+        .eq('user_id', req.user.userId)
+        .maybeSingle();
+
+      if (profile) {
+        await supabase
+          .from('student_profiles')
+          .update({ assigned_counsellor_id: counsellorId, updated_at: new Date().toISOString() })
+          .eq('user_id', req.user.userId);
+        console.log(`[Allocation] Assigned counsellor ${counsellorId} to student ${req.user.userId} (day-order booking)`);
+      }
+    } catch (allocErr) {
+      console.error('Error assigning counsellor on day-order booking:', allocErr);
+    }
+
     // Get student and counsellor details for email
     const { data: student } = await supabase
       .from('users')
@@ -2001,7 +2046,7 @@ router.get('/pre-session-brief/student/:studentId', verifyToken, async (req, res
 // QUESTIONNAIRE ENDPOINTS
 // ────────────────────────────────────────────────────────────────
 
-// Submit a PHQ-9 form
+// Submit a PHQ-9 form (linked to the appointment the student booked)
 router.post('/phq9', verifyToken, async (req, res) => {
   try {
     const { appointmentId, responses, totalScore } = req.body;
@@ -2011,14 +2056,46 @@ router.post('/phq9', verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'Missing required data' });
     }
 
-    const { data, error } = await supabase
+    if (!Array.isArray(responses) || responses.length !== 9 || responses.some((r) => r === null || r === undefined)) {
+      return res.status(400).json({ error: 'All 9 PHQ-9 questions must be answered' });
+    }
+
+    const { data: appointment, error: aptError } = await supabase
+      .from('appointments')
+      .select('id, student_id, counsellor_id')
+      .eq('id', appointmentId)
+      .single();
+
+    if (aptError || !appointment) {
+      return res.status(404).json({ error: 'Appointment not found' });
+    }
+
+    if (appointment.student_id !== userId) {
+      return res.status(403).json({ error: 'You can only submit a questionnaire for your own appointment' });
+    }
+
+    const { data: existing } = await supabase
+      .from('questionnaire_responses')
+      .select('id')
+      .eq('appointment_id', appointmentId)
+      .eq('type', 'PHQ-9')
+      .maybeSingle();
+
+    if (existing) {
+      return res.status(409).json({ error: 'Questionnaire already submitted for this appointment' });
+    }
+
+    const computedScore = responses.reduce((sum, val) => sum + Number(val), 0);
+    const scoreToSave = typeof totalScore === 'number' ? totalScore : computedScore;
+
+    const { error } = await supabase
       .from('questionnaire_responses')
       .insert({
         user_id: userId,
         appointment_id: appointmentId,
         type: 'PHQ-9',
         responses,
-        total_score: totalScore
+        total_score: scoreToSave
       });
 
     if (error) {
@@ -2026,38 +2103,107 @@ router.post('/phq9', verifyToken, async (req, res) => {
       return res.status(500).json({ error: 'Failed to save questionnaire' });
     }
 
-    res.json({ success: true });
+    console.log(`[PHQ-9] Saved for appointment ${appointmentId} → counsellor ${appointment.counsellor_id}`);
+    res.json({ success: true, counsellorId: appointment.counsellor_id });
   } catch (err) {
     console.error('PHQ9 endpoint error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Fetch all PHQ-9 data for a specific student
+// Fetch PHQ-9 data for a student (counsellors only see responses for their booked sessions)
 router.get('/student-phq9/:studentId', verifyToken, async (req, res) => {
   try {
     const { studentId } = req.params;
+    const callerId = req.user.userId || req.user.id;
+    const isCounsellor = req.user.userType === 'counsellor';
+    const isAdmin = req.user.userType === 'admin';
 
-    // Optional Check: Is the caller a counsellor who has an appointment with them?
-    if (req.user.userType !== 'counsellor' && req.user.userType !== 'admin') {
-      if (req.user.userId !== studentId && req.user.id !== studentId) {
+    if (!isCounsellor && !isAdmin) {
+      if (callerId !== studentId) {
         return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    if (isCounsellor) {
+      const { data: relationship } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('counsellor_id', callerId)
+        .eq('student_id', studentId)
+        .limit(1);
+
+      const { data: profile } = await supabase
+        .from('student_profiles')
+        .select('assigned_counsellor_id')
+        .eq('user_id', studentId)
+        .maybeSingle();
+
+      const hasAccess =
+        (relationship && relationship.length > 0) ||
+        profile?.assigned_counsellor_id === callerId;
+
+      if (!hasAccess) {
+        return res.status(403).json({ error: 'Not authorized to view this student\'s questionnaires' });
       }
     }
 
     const { data: qData, error } = await supabase
       .from('questionnaire_responses')
-      .select('created_at, total_score, appointment_id')
+      .select('id, created_at, total_score, responses, appointment_id')
       .eq('user_id', studentId)
       .eq('type', 'PHQ-9')
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Fetch PHQ9 error:', error);
       return res.json({ scores: [] });
     }
 
-    res.json({ scores: qData || [] });
+    let scores = qData || [];
+
+    if (isCounsellor) {
+      const appointmentIds = scores.map((s) => s.appointment_id).filter(Boolean);
+      if (appointmentIds.length === 0) {
+        return res.json({ scores: [] });
+      }
+
+      const { data: appts } = await supabase
+        .from('appointments')
+        .select('id, date, start_time, counsellor_id')
+        .in('id', appointmentIds)
+        .eq('counsellor_id', callerId);
+
+      const apptMap = new Map((appts || []).map((a) => [a.id, a]));
+
+      scores = scores
+        .filter((s) => apptMap.has(s.appointment_id))
+        .map((s) => {
+          const apt = apptMap.get(s.appointment_id);
+          return {
+            ...s,
+            appointment_date: apt?.date || null,
+            appointment_start_time: apt?.start_time || null
+          };
+        });
+    } else if (scores.length > 0) {
+      const appointmentIds = scores.map((s) => s.appointment_id).filter(Boolean);
+      const { data: appts } = await supabase
+        .from('appointments')
+        .select('id, date, start_time')
+        .in('id', appointmentIds);
+      const apptMap = new Map((appts || []).map((a) => [a.id, a]));
+      scores = scores.map((s) => {
+        const apt = apptMap.get(s.appointment_id);
+        return {
+          ...s,
+          appointment_date: apt?.date || null,
+          appointment_start_time: apt?.start_time || null
+        };
+      });
+    }
+
+    res.json({ scores });
   } catch (err) {
     console.error('PHQ9 fetch error:', err);
     res.json({ scores: [] });

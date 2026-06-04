@@ -14,7 +14,8 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
-import { FiArrowLeft, FiUser, FiActivity, FiTrendingUp, FiClock, FiFileText, FiCheckCircle, FiCpu } from 'react-icons/fi';
+import { FiArrowLeft, FiUser, FiActivity, FiTrendingUp, FiClock, FiCheckCircle, FiCpu, FiFileText, FiAlertTriangle } from 'react-icons/fi';
+import { PHQ9_QUESTIONS, PHQ9_OPTION_LABELS, phq9Severity } from '../constants/phq9Questions';
 import './Dashboard.css';
 
 ChartJS.register(
@@ -27,6 +28,17 @@ ChartJS.register(
   Legend
 );
 
+const formatSessionDate = (dateStr, timeStr) => {
+  if (!dateStr) return 'Session';
+  const d = new Date(dateStr);
+  const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  if (timeStr) {
+    const t = String(timeStr).substring(0, 5);
+    return `${label} at ${t}`;
+  }
+  return label;
+};
+
 const CounsellorStudentDetail = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -35,16 +47,19 @@ const CounsellorStudentDetail = () => {
   const [loading, setLoading] = useState(true);
   const [brief, setBrief] = useState(null);
   const [briefLoading, setBriefLoading] = useState(false);
-  const [phq9Data, setPhq9Data] = useState(null);
+  const [questionnaires, setQuestionnaires] = useState([]);
+  const [expandedId, setExpandedId] = useState(null);
 
   const fetchDetails = useCallback(async () => {
     try {
       const response = await api.get(`/appointments/counsellor/student/${studentId}`);
       setDetails(response.data);
-      
+
       const phqResponse = await api.get(`/appointments/student-phq9/${studentId}`);
-      if (phqResponse.data.scores?.length > 0) {
-        setPhq9Data(phqResponse.data.scores[phqResponse.data.scores.length - 1]); // latest
+      const scores = phqResponse.data.scores || [];
+      setQuestionnaires(scores);
+      if (scores.length > 0) {
+        setExpandedId(scores[0].id);
       }
     } catch (err) {
       console.error(err.response?.data?.error || 'Failed to load student details');
@@ -72,6 +87,8 @@ const CounsellorStudentDetail = () => {
     }
     fetchDetails();
   }, [user, navigate, fetchDetails]);
+
+  const latestQuestionnaire = questionnaires[0] || null;
 
   const chartData = details?.moodEntries?.length > 0 ? {
     labels: details.moodEntries
@@ -116,7 +133,7 @@ const CounsellorStudentDetail = () => {
   return (
     <div className="dashboard student-detail-view">
       <div className="container">
-        <motion.header 
+        <motion.header
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           className="dashboard-header-modern"
@@ -150,6 +167,94 @@ const CounsellorStudentDetail = () => {
                   <span>{details?.sessions?.scheduled} Scheduled</span>
                 </div>
               </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+              className="phq9-overview-card glass-card"
+            >
+              <div className="card-header">
+                <h2><FiFileText /> Pre-Session Questionnaire (PHQ-9)</h2>
+                {latestQuestionnaire && (
+                  <span className={`phq9-severity-badge severity-${phq9Severity(latestQuestionnaire.total_score).level}`}>
+                    {phq9Severity(latestQuestionnaire.total_score).label} — {latestQuestionnaire.total_score}/27
+                  </span>
+                )}
+              </div>
+
+              {questionnaires.length === 0 ? (
+                <p className="phq9-empty-note">
+                  No questionnaire submitted yet. The student completes PHQ-9 right after booking a session with you.
+                </p>
+              ) : (
+                <div className="phq9-submissions-list">
+                  {questionnaires.map((entry) => {
+                    const severity = phq9Severity(entry.total_score);
+                    const isExpanded = expandedId === entry.id;
+                    const responses = entry.responses || [];
+
+                    return (
+                      <div key={entry.id} className="phq9-submission-block">
+                        <button
+                          type="button"
+                          className="phq9-submission-header"
+                          onClick={() => setExpandedId(isExpanded ? null : entry.id)}
+                        >
+                          <div>
+                            <strong>{formatSessionDate(entry.appointment_date, entry.appointment_start_time)}</strong>
+                            <span className="phq9-submitted-at">
+                              Submitted {new Date(entry.created_at).toLocaleString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                          <span className={`phq9-score-pill severity-${severity.level}`}>
+                            {entry.total_score}/27 — {severity.label}
+                          </span>
+                        </button>
+
+                        {isExpanded && (
+                          <ul className="phq9-answers-list">
+                            {PHQ9_QUESTIONS.map((question, idx) => {
+                              const score = responses[idx];
+                              const answerLabel =
+                                score != null && PHQ9_OPTION_LABELS[score]
+                                  ? PHQ9_OPTION_LABELS[score]
+                                  : 'Not answered';
+                              const isHighRisk = idx === 8 && score >= 2;
+
+                              return (
+                                <li key={idx} className={isHighRisk ? 'phq9-answer-high-risk' : ''}>
+                                  <span className="phq9-q-num">Q{idx + 1}</span>
+                                  <div className="phq9-answer-body">
+                                    <p className="phq9-question-text">{question}</p>
+                                    <p className="phq9-answer-text">
+                                      {answerLabel}
+                                      {score != null && (
+                                        <span className="phq9-answer-score"> ({score})</span>
+                                      )}
+                                    </p>
+                                    {isHighRisk && (
+                                      <p className="phq9-risk-flag">
+                                        <FiAlertTriangle /> Item 9 flagged — review safety during session
+                                      </p>
+                                    )}
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="chart-section glass-card">
@@ -189,14 +294,14 @@ const CounsellorStudentDetail = () => {
                 )) : <div className="empty-state">No recent check-ins</div>}
               </div>
             </motion.div>
-            
+
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="clinical-notes-card glass-card ai-brief-card">
               <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3><FiCpu /> Pre-Session Brief</h3>
                 {!brief && (
-                  <button 
-                    className="btn-outline-mini" 
-                    onClick={fetchBrief} 
+                  <button
+                    className="btn-outline-mini"
+                    onClick={fetchBrief}
                     disabled={briefLoading}
                     style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '4px', cursor: 'pointer', background: 'rgba(46, 196, 182, 0.1)', color: '#2ec4b6', border: '1px solid #2ec4b6' }}
                   >
@@ -204,14 +309,14 @@ const CounsellorStudentDetail = () => {
                   </button>
                 )}
               </div>
-              
+
               {brief ? (
                 <div className="brief-content" style={{ marginTop: '1rem', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #667eea' }}>
-                  {phq9Data && (
+                  {latestQuestionnaire && (
                     <div style={{ marginBottom: '1rem', paddingBottom: '0.8rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                       <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: '600' }}>Latest PHQ-9 Score:</span>
-                      <span style={{ marginLeft: '0.5rem', background: phq9Data.total_score >= 10 ? '#e74c3c' : '#f1c40f', color: '#000', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                        {phq9Data.total_score} / 27
+                      <span className={`phq9-score-pill severity-${phq9Severity(latestQuestionnaire.total_score).level}`} style={{ marginLeft: '0.5rem' }}>
+                        {latestQuestionnaire.total_score} / 27
                       </span>
                     </div>
                   )}
@@ -222,7 +327,7 @@ const CounsellorStudentDetail = () => {
                 </div>
               ) : (
                 <p className="note-placeholder" style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#94a3b8' }}>
-                  Click to generate an AI summary of the student's recent bot interactions and view check-ins before your session.
+                  Click to generate an AI summary of the student&apos;s recent bot interactions and view check-ins before your session.
                 </p>
               )}
             </motion.div>

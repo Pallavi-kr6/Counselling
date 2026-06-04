@@ -85,7 +85,7 @@ const BookAppointment = () => {
 
     try {
       const dateStr = selectedDate.toISOString().split('T')[0];
-      await api.post('/appointments/book', {
+      const resp = await api.post('/appointments/book', {
         counsellorId: selectedCounsellor.user_id,
         date: dateStr,
         startTime: selectedSlot.start_time,
@@ -93,10 +93,12 @@ const BookAppointment = () => {
         notes: notes
       });
 
-      setSuccess('Connection scheduled. We will send you a gentle reminder before the session.');
+      const aptId = resp.data?.appointment?.id;
+      setSuccess('Connection scheduled. Please complete a short pre-session questionnaire.');
       setTimeout(() => {
-        navigate('/appointments');
-      }, 2500);
+        if (aptId) navigate(`/phq9/${aptId}`);
+        else navigate('/appointments');
+      }, 2000);
     } catch (err) {
       setError(err.response?.data?.error || 'We had trouble holding that time for you. Please try again.');
     } finally {
