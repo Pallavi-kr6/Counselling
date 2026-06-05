@@ -1,27 +1,32 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiHeart, FiWind, FiX, FiArrowRight } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
 import { useWellness } from '../context/WellnessContext';
 import './ReminderBanner.css';
 
-/**
- * ReminderBanner
- * Shows an animated top-of-screen banner when a mood or breathing reminder is due.
- * Rendered once at app level (inside App.js).
- */
+const PUBLIC_PATHS = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/professionals'];
+
 const ReminderBanner = () => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
   const {
     moodReminderDue,
     breathingReminderDue,
+    moodLoggedToday,
     dismissMoodReminder,
     dismissBreathingReminder,
   } = useWellness();
   const navigate = useNavigate();
 
-  // Mood banner takes priority over breathing
-  const showMood      = moodReminderDue;
-  const showBreathing = !moodReminderDue && breathingReminderDue;
+  const isStudent = !loading && user?.userType === 'student';
+  const onStudentPage = isStudent && !PUBLIC_PATHS.includes(location.pathname);
+
+  if (!onStudentPage) return null;
+
+  const showMood = moodReminderDue && !moodLoggedToday;
+  const showBreathing = !showMood && breathingReminderDue;
 
   const handleMoodClick = () => {
     dismissMoodReminder();
@@ -54,17 +59,10 @@ const ReminderBanner = () => {
               <strong>Daily Mood Check-in</strong>
               <span>How are you feeling right now? It only takes a moment. 💙</span>
             </div>
-            <button
-              className="reminder-action"
-              onClick={handleMoodClick}
-            >
+            <button className="reminder-action" onClick={handleMoodClick}>
               Log mood <FiArrowRight size={14} />
             </button>
-            <button
-              className="reminder-dismiss"
-              onClick={dismissMoodReminder}
-              aria-label="Dismiss"
-            >
+            <button className="reminder-dismiss" onClick={dismissMoodReminder} aria-label="Dismiss">
               <FiX size={16} />
             </button>
           </div>
@@ -90,17 +88,10 @@ const ReminderBanner = () => {
               <strong>Breathing Break</strong>
               <span>You've been at it a while. Take 5 minutes to breathe and reset. 🌬️</span>
             </div>
-            <button
-              className="reminder-action"
-              onClick={handleBreathingClick}
-            >
+            <button className="reminder-action" onClick={handleBreathingClick}>
               Let's breathe <FiArrowRight size={14} />
             </button>
-            <button
-              className="reminder-dismiss"
-              onClick={dismissBreathingReminder}
-              aria-label="Dismiss"
-            >
+            <button className="reminder-dismiss" onClick={dismissBreathingReminder} aria-label="Dismiss">
               <FiX size={16} />
             </button>
           </div>

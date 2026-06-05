@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
+import { useWellness } from '../context/WellnessContext';
 import { motion } from 'framer-motion';
 import { LineChart, Line as RechartsLine, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { 
@@ -16,6 +17,7 @@ import './MoodTracking.css';
 
 
 const MoodTracking = () => {
+  const { notifyMoodCheckedIn } = useWellness();
   const [mood, setMood] = useState(5);
   const [stressLevel, setStressLevel] = useState(5);
   const [sleepHours, setSleepHours] = useState(7);
@@ -110,6 +112,7 @@ const MoodTracking = () => {
         return entryDate === today;
       });
       setHasCheckedInToday(alreadyChecked);
+      if (alreadyChecked) notifyMoodCheckedIn();
     } catch (error) {
       console.error('Error fetching mood history:', error);
     }
@@ -135,6 +138,8 @@ const MoodTracking = () => {
       await api.post('/mood/check-in', {
         mood, emoji, stressLevel, sleepHours, notes
       });
+      setHasCheckedInToday(true);
+      notifyMoodCheckedIn();
       setNotes('');
       fetchMoodHistory();
       fetchDashboard();
@@ -143,6 +148,7 @@ const MoodTracking = () => {
       if (error.response?.data?.error === 'ALREADY_CHECKED_IN') {
         alert('ALREADY CHECKED IN');
         setHasCheckedInToday(true);
+        notifyMoodCheckedIn();
       } else {
         console.error('Error saving check-in:', error);
         alert('Error saving check-in. Please try again.');

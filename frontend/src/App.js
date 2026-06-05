@@ -28,6 +28,8 @@ import Landing from './pages/Landing';
 import Professionals from './pages/Professionals';
 import Navbar from './components/Navbar';
 import ReminderBanner from './components/ReminderBanner';
+import StudentEchoes from './pages/StudentEchoes';
+import VoiceRipple from './pages/VoiceRipple';
 import './App.css';
 
 const PageWrapper = ({ children }) => (
@@ -224,6 +226,24 @@ function AnimatedRoutes() {
               <Navbar />
               <PageWrapper><AdminInsights /></PageWrapper>
             </AdminOnlyRoute>
+          }
+        />
+        <Route
+          path="/student-echoes"
+          element={
+            <CounsellorOnlyRoute>
+              <Navbar />
+              <PageWrapper><StudentEchoes /></PageWrapper>
+            </CounsellorOnlyRoute>
+          }
+        />
+        <Route
+          path="/voice-ripple"
+          element={
+            <StudentOnlyRoute>
+              <Navbar />
+              <PageWrapper><VoiceRipple /></PageWrapper>
+            </StudentOnlyRoute>
           }
         />
       </Routes>

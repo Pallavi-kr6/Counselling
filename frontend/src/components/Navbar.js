@@ -17,7 +17,9 @@ import {
   FiMessageCircle,
   FiSun,
   FiMoon,
-  FiSettings
+  FiSettings,
+  FiAward,
+  FiZap
 } from 'react-icons/fi';
 import PersonalizationPanel from './PersonalizationPanel';
 import './Navbar.css';
@@ -44,6 +46,7 @@ const Navbar = () => {
 
   const studentNavItems = [
     { path: '/mood', icon: FiHeart, label: t('nav.mood') },
+    { path: '/voice-ripple', icon: FiZap, label: 'Voice Ripple' },
     { path: '/resources', icon: FiBook, label: t('nav.resources') },
     { path: '/professionals', icon: FiUsers, label: 'Counsellors' },
     { path: '/emergency', icon: FiPhone, label: t('nav.emergency') },
@@ -52,6 +55,7 @@ const Navbar = () => {
 
   const counsellorNavItems = [
     { path: '/sessions-summary', icon: FiUsers, label: 'Student Details' },
+    { path: '/student-echoes', icon: FiAward, label: 'Student Echoes' },
     { path: '/resources', icon: FiBook, label: t('nav.resources') }
   ];
 
