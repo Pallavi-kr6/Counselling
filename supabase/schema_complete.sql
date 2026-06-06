@@ -48,6 +48,8 @@ CREATE TABLE IF NOT EXISTS public.student_profiles (
   gender TEXT,
   contact_info TEXT,
   department TEXT,
+  reg_number TEXT,
+  section TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

@@ -28,7 +28,9 @@ const Signup = () => {
     course: '',
     gender: '',
     contactInfo: '',
-    department: ''
+    department: '',
+    regNumber: '',
+    section: ''
   });
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -198,6 +200,26 @@ const Signup = () => {
                     value={formData.course}
                     onChange={(e) => setFormData({ ...formData, course: e.target.value })}
                     placeholder="Course"
+                  />
+                </div>
+                <div className="form-group-modern">
+                  <FiUser className="input-icon" />
+                  <input
+                    type="text"
+                    value={formData.regNumber}
+                    onChange={(e) => setFormData({ ...formData, regNumber: e.target.value })}
+                    placeholder="Registration Number *"
+                    required
+                  />
+                </div>
+                <div className="form-group-modern">
+                  <FiBookOpen className="input-icon" />
+                  <input
+                    type="text"
+                    value={formData.section}
+                    onChange={(e) => setFormData({ ...formData, section: e.target.value })}
+                    placeholder="Section (e.g. A, B, C) *"
+                    required
                   />
                 </div>
                 <div className="form-group-modern">

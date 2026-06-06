@@ -14,7 +14,9 @@ const Profile = () => {
     course: '',
     gender: '',
     contactInfo: '',
-    department: 'Computer Science' // Defaulting for visual polish if empty
+    department: 'Computer Science', // Defaulting for visual polish if empty
+    regNumber: '',
+    section: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -32,7 +34,9 @@ const Profile = () => {
           course: response.data.profile.course || '',
           gender: response.data.profile.gender || '',
           contactInfo: response.data.profile.contact_info || '',
-          department: response.data.profile.department || ''
+          department: response.data.profile.department || '',
+          regNumber: response.data.profile.reg_number || '',
+          section: response.data.profile.section || ''
         });
       }
       
@@ -226,6 +230,24 @@ const Profile = () => {
                         value={formData.department}
                         onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                         placeholder="e.g. Engineering"
+                      />
+                    </div>
+                    <div className="input-group-modern">
+                      <label><FiHash /> Registration Number</label>
+                      <input
+                        type="text"
+                        value={formData.regNumber}
+                        onChange={(e) => setFormData({ ...formData, regNumber: e.target.value })}
+                        placeholder="e.g. 21CS001"
+                      />
+                    </div>
+                    <div className="input-group-modern">
+                      <label><FiBookOpen /> Section</label>
+                      <input
+                        type="text"
+                        value={formData.section}
+                        onChange={(e) => setFormData({ ...formData, section: e.target.value })}
+                        placeholder="e.g. A, B, C"
                       />
                     </div>
                     <div className="input-group-modern">

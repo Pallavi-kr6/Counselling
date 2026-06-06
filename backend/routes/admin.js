@@ -251,6 +251,7 @@ router.get('/live-alerts', verifyToken, async (req, res) => {
     const { data: alerts, error } = await supabase
       .from('crisis_alerts')
       .select('*')
+      .eq('resolved', false)
       .order('created_at', { ascending: false })
       .limit(20);
 
@@ -284,6 +285,16 @@ router.get('/live-alerts', verifyToken, async (req, res) => {
       if (error.code === 'PGRST205') {
         console.warn('Table crisis_alerts is missing in schema cache.');
         return res.json({ alerts: [], warning: 'Crisis alerts table not found' });
+      }
+      if (error.code === '42703') {
+        // resolved column not migrated yet — fall back to all alerts
+        const { data: fallbackAlerts, error: fallbackError } = await supabase
+          .from('crisis_alerts')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(20);
+        if (fallbackError) throw fallbackError;
+        return res.json({ alerts: fallbackAlerts || [], warning: 'resolved column not yet in schema' });
       }
       throw error;
     }

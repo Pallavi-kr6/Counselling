@@ -36,17 +36,25 @@ router.get('/student/:id', verifyToken, async (req, res) => {
 // Create/Update student profile
 router.post('/student', verifyToken, async (req, res) => {
   try {
-    const { name, year, course, gender, contactInfo, department } = req.body;
+    const { name, year, course, gender, contactInfo, department, regNumber, section } = req.body;
 
-    const profileData = {
-      user_id: req.user.userId,
-      name: name || null,
-      year: year || null,
-      course: course || null,
-      gender: gender || null,
-      contact_info: contactInfo || null,
-      department: department || null
+    const fieldMap = {
+      name: 'name',
+      year: 'year',
+      course: 'course',
+      gender: 'gender',
+      contactInfo: 'contact_info',
+      department: 'department',
+      regNumber: 'reg_number',
+      section: 'section'
     };
+
+    const profileData = { user_id: req.user.userId };
+    for (const [bodyKey, dbKey] of Object.entries(fieldMap)) {
+      if (Object.prototype.hasOwnProperty.call(req.body, bodyKey)) {
+        profileData[dbKey] = req.body[bodyKey] || null;
+      }
+    }
 
     // Check if profile exists
     const { data: existing } = await supabase
@@ -57,10 +65,12 @@ router.post('/student', verifyToken, async (req, res) => {
 
     let result;
     if (existing) {
-      // Update existing profile
+      const updates = { ...profileData };
+      delete updates.user_id;
+      // Update existing profile (partial update — only fields sent in request body)
       const { data, error } = await supabase
         .from('student_profiles')
-        .update(profileData)
+        .update(updates)
         .eq('user_id', req.user.userId)
         .select()
         .single();

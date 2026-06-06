@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS student_profiles (
   gender TEXT,
   contact_info TEXT,
   department TEXT,
+  reg_number TEXT,
+  section TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(user_id)

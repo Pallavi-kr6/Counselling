@@ -216,7 +216,7 @@ router.post('/student/send-otp', async (req, res) => {
 // Send OTP for signup (stores profile data temporarily)
 router.post('/student/send-signup-otp', async (req, res) => {
   try {
-    const { email, password, name, year, course, gender, contactInfo, department } = req.body;
+    const { email, password, name, year, course, gender, contactInfo, department, regNumber, section } = req.body;
 
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
@@ -269,6 +269,8 @@ router.post('/student/send-signup-otp', async (req, res) => {
       gender,
       contactInfo,
       department,
+      regNumber,
+      section,
       expiresAt
     });
 
@@ -410,7 +412,9 @@ router.post('/student/verify-otp', async (req, res) => {
             course: signupData.course || null,
             gender: signupData.gender || null,
             contact_info: signupData.contactInfo || null,
-            department: signupData.department || null
+            department: signupData.department || null,
+            reg_number: signupData.regNumber || null,
+            section: signupData.section || null
           });
 
         if (profileError) {
@@ -454,7 +458,7 @@ router.post('/student/verify-otp', async (req, res) => {
 // Student Signup with Supabase Auth
 router.post('/student/signup', async (req, res) => {
   try {
-    const { email, password, name, year, course, gender, contactInfo, department } = req.body;
+    const { email, password, name, year, course, gender, contactInfo, department, regNumber, section } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
@@ -518,7 +522,9 @@ router.post('/student/signup', async (req, res) => {
         course: course || null,
         gender: gender || null,
         contact_info: contactInfo || null,
-        department: department || null
+        department: department || null,
+        reg_number: regNumber || null,
+        section: section || null
       });
 
     if (profileError) {

@@ -176,6 +176,24 @@ const CounsellorStudentDetail = () => {
                     </div>
                   </div>
                 )}
+                {details?.student?.reg_number && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FiInfo size={14} style={{ color: '#2ec4b6', flexShrink: 0 }} />
+                    <div>
+                      <p style={{ margin: 0, fontSize: '0.7rem', color: '#94a3b8' }}>Reg. Number</p>
+                      <p style={{ margin: 0, fontSize: '0.82rem', color: '#e2e8f0', fontWeight: 600 }}>{details.student.reg_number}</p>
+                    </div>
+                  </div>
+                )}
+                {details?.student?.section && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FiInfo size={14} style={{ color: '#2ec4b6', flexShrink: 0 }} />
+                    <div>
+                      <p style={{ margin: 0, fontSize: '0.7rem', color: '#94a3b8' }}>Section</p>
+                      <p style={{ margin: 0, fontSize: '0.82rem', color: '#e2e8f0', fontWeight: 600 }}>{details.student.section}</p>
+                    </div>
+                  </div>
+                )}
                 {details?.student?.gender && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <FiInfo size={14} style={{ color: '#2ec4b6', flexShrink: 0 }} />

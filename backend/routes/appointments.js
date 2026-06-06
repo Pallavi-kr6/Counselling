@@ -810,7 +810,7 @@ router.get('/counsellor/student/:studentId', verifyToken, async (req, res) => {
     // Student profile (including gender and contact_info)
     const { data: profile, error: profileError } = await supabase
       .from('student_profiles')
-      .select('user_id, name, year, course, department, gender, contact_info, assigned_counsellor_id')
+      .select('user_id, name, year, course, department, gender, contact_info, reg_number, section, assigned_counsellor_id')
       .eq('user_id', studentId)
       .single();
 

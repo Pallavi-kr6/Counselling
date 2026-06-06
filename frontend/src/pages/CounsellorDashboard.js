@@ -260,7 +260,10 @@ const CounsellorDashboard = () => {
   useEffect(() => {
     // Initial fetch
     api.get('/admin/live-alerts')
-      .then(res => setLiveAlerts(res.data.alerts || []))
+      .then(res => {
+        const active = (res.data.alerts || []).filter(a => !a.resolved);
+        setLiveAlerts(active);
+      })
       .catch(err => console.error('Live alerts initial fetch error:', err));
 
     // Real-time subscription (Supabase)
@@ -273,7 +276,11 @@ const CounsellorDashboard = () => {
         });
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'crisis_alerts' }, payload => {
-        setLiveAlerts(prev => prev.map(a => a.id === payload.new.id ? payload.new : a));
+        if (payload.new.resolved) {
+          setLiveAlerts(prev => prev.filter(a => a.id !== payload.new.id));
+        } else {
+          setLiveAlerts(prev => prev.map(a => a.id === payload.new.id ? payload.new : a));
+        }
       })
       .subscribe();
 
@@ -374,11 +381,15 @@ const CounsellorDashboard = () => {
 
   const resolveAlert = async (alertId) => {
     try {
-      await api.patch(`/admin/live-alerts/${alertId}/resolve`);
+      const res = await api.patch(`/admin/live-alerts/${alertId}/resolve`);
+      if (res.data.warning) {
+        alert('Resolve could not be saved — please run the crisis_alerts migration (SQL_ADD_RESOLVED_CRISIS_ALERTS.sql).');
+        return;
+      }
       setLiveAlerts(prev => prev.filter(a => a.id !== alertId));
     } catch (err) {
       console.error('Resolve alert error:', err);
-      alert('Failed to resolve this alert. The database may need a schema update (add resolved column to crisis_alerts).');
+      alert(err.response?.data?.error || 'Failed to resolve this alert. Please try again.');
     }
   };
 
