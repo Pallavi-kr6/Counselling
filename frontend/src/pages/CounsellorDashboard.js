@@ -558,64 +558,7 @@ const CounsellorDashboard = () => {
             </motion.div>
 
             {/* ── At-Risk Students Panel ── */}
-            <motion.div className="dashboard-card-modern glass-card" variants={cardVariants} style={{ marginBottom: '1.5rem' }}>
-              <div className="card-header-modern" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <FiTrendingDown color="#f59e0b" />
-                  At-Risk Students
-                  {watchFlags.length > 0 && (
-                    <span style={{
-                      background: urgentCount > 0 ? '#fee2e2' : '#fffbeb',
-                      color: urgentCount > 0 ? '#dc2626' : '#92400e',
-                      border: `1px solid ${urgentCount > 0 ? '#fca5a5' : '#fcd34d'}`,
-                      borderRadius: '20px', padding: '2px 8px',
-                      fontSize: '0.75rem', fontWeight: 700,
-                    }}>
-                      {watchFlags.length}
-                    </span>
-                  )}
-                </h2>
-                <button
-                  onClick={() => setShowResolved(v => !v)}
-                  style={{
-                    background: 'none', border: '1px solid #e5e7eb', borderRadius: '8px',
-                    padding: '5px 10px', fontSize: '0.78rem', color: '#6b7280',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {showResolved ? 'Show Active' : 'Show Resolved'}
-                </button>
-              </div>
-
-              <div style={{ padding: '0 4px' }}>
-                {watchLoading ? (
-                  <p style={{ color: '#9ca3af', fontSize: '0.875rem', textAlign: 'center', padding: '20px 0' }}>
-                    Loading watch flags…
-                  </p>
-                ) : watchFlags.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '24px 0', color: '#6b7280' }}>
-                    <FiCheckCircle size={28} style={{ marginBottom: 8, color: '#10b981' }} />
-                    <p style={{ margin: 0, fontSize: '0.875rem' }}>
-                      {showResolved ? 'No resolved flags.' : 'No at-risk students flagged. All looking good! 🎉'}
-                    </p>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#9ca3af' }}>
-                      The system scans mood check-ins daily at 02:00 IST.
-                    </p>
-                  </div>
-                ) : (
-                  <AnimatePresence mode="popLayout">
-                    {watchFlags.map(flag => (
-                      <WatchFlagCard
-                        key={flag.id}
-                        flag={flag}
-                        onAcknowledge={acknowledgeFlag}
-                        onResolve={resolveFlag}
-                      />
-                    ))}
-                  </AnimatePresence>
-                )}
-              </div>
-            </motion.div>
+           
 
             {/* ── Scheduled Sessions ── */}
             <motion.div className="dashboard-card-modern glass-card" variants={cardVariants}>
