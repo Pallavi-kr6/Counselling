@@ -70,6 +70,13 @@
   color: var(--primary) !important;
 }
 
+[data-theme='dark'] .form-group-modern input,
+[data-theme='dark'] .form-group-modern select {
+  background: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--text-primary);
+}
+
 .btn-link {
   background: transparent;
   border: none;

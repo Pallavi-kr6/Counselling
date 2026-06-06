@@ -531,8 +531,12 @@
 .search-pill input {
   background: transparent;
   border: none;
-  color: white;
+  color: var(--text-primary);
   width: 100%;
+}
+
+.search-pill input::placeholder {
+  color: var(--text-secondary);
 }
 
 .search-pill input:focus { outline: none; }
@@ -793,13 +797,13 @@
   margin: 0 0 0.35rem;
   font-size: 0.9rem;
   line-height: 1.5;
-  color: #e2e8f0;
+  color: var(--text-primary);
 }
 
 .phq9-answer-text {
   margin: 0;
   font-size: 0.85rem;
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
@@ -836,4 +840,96 @@
   .phq9-section-toggle-right { width: 100%; justify-content: space-between; }
   .phq9-submission-header { flex-wrap: wrap; }
   .phq9-submission-header-end { width: 100%; justify-content: space-between; }
+}
+
+/* ── Dark mode readability fixes ── */
+[data-theme='dark'] .dashboard-header-modern h1,
+[data-theme='dark'] .header-greeting h1,
+[data-theme='dark'] .card-header-modern h2,
+[data-theme='dark'] .card-header h2,
+[data-theme='dark'] .card-header h3,
+[data-theme='dark'] .session-info h4,
+[data-theme='dark'] .hero-text h2 {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .dashboard-header-modern p,
+[data-theme='dark'] .header-greeting p {
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .availability-row-mini {
+  background: var(--surface-muted);
+}
+
+[data-theme='dark'] .session-notes-modal {
+  background: var(--surface-elevated) !important;
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .session-notes-modal h3,
+[data-theme='dark'] .session-notes-modal label {
+  color: var(--text-primary) !important;
+}
+
+[data-theme='dark'] .session-notes-modal textarea,
+[data-theme='dark'] .session-notes-modal select,
+[data-theme='dark'] .session-notes-modal input {
+  background: var(--input-bg) !important;
+  border-color: var(--input-border) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme='dark'] .watch-flag-card {
+  background: var(--surface-elevated) !important;
+  border-color: var(--glass-border) !important;
+}
+
+[data-theme='dark'] .watch-flag-card .watch-flag-name {
+  color: var(--text-primary) !important;
+}
+
+[data-theme='dark'] .watch-flag-card .watch-flag-meta {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme='dark'] .watch-flag-card .watch-flag-reason {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme='dark'] .watch-flag-stats {
+  background: var(--surface-muted) !important;
+}
+
+[data-theme='dark'] .crisis-alert-name {
+  color: var(--text-primary) !important;
+}
+
+[data-theme='dark'] .crisis-alert-message {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme='dark'] .crisis-alert-time {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme='dark'] .student-info-label {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme='dark'] .student-info-value {
+  color: var(--text-primary) !important;
+}
+
+[data-theme='dark'] .ai-brief-panel {
+  background: var(--surface-muted) !important;
+}
+
+[data-theme='dark'] .ai-brief-panel .brief-score-label,
+[data-theme='dark'] .ai-brief-panel .brief-text {
+  color: var(--text-primary) !important;
+}
+
+[data-theme='dark'] .ai-brief-panel .brief-meta {
+  color: var(--text-secondary) !important;
 }

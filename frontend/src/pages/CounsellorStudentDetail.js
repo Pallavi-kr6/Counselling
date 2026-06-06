@@ -162,8 +162,8 @@ const CounsellorStudentDetail = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <FiMail size={14} style={{ color: '#2ec4b6', flexShrink: 0 }} />
                     <div>
-                      <p style={{ margin: 0, fontSize: '0.7rem', color: '#94a3b8' }}>Email</p>
-                      <p style={{ margin: 0, fontSize: '0.82rem', color: '#e2e8f0', fontWeight: 600, wordBreak: 'break-all' }}>{details.student.email}</p>
+                      <p className="student-info-label" style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Email</p>
+                      <p className="student-info-value" style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600, wordBreak: 'break-all' }}>{details.student.email}</p>
                     </div>
                   </div>
                 )}
@@ -171,8 +171,8 @@ const CounsellorStudentDetail = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <FiPhone size={14} style={{ color: '#2ec4b6', flexShrink: 0 }} />
                     <div>
-                      <p style={{ margin: 0, fontSize: '0.7rem', color: '#94a3b8' }}>Phone</p>
-                      <p style={{ margin: 0, fontSize: '0.82rem', color: '#e2e8f0', fontWeight: 600 }}>{details.student.contact_info}</p>
+                      <p className="student-info-label" style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Phone</p>
+                      <p className="student-info-value" style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{details.student.contact_info}</p>
                     </div>
                   </div>
                 )}
@@ -180,8 +180,8 @@ const CounsellorStudentDetail = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <FiInfo size={14} style={{ color: '#2ec4b6', flexShrink: 0 }} />
                     <div>
-                      <p style={{ margin: 0, fontSize: '0.7rem', color: '#94a3b8' }}>Reg. Number</p>
-                      <p style={{ margin: 0, fontSize: '0.82rem', color: '#e2e8f0', fontWeight: 600 }}>{details.student.reg_number}</p>
+                      <p className="student-info-label" style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Reg. Number</p>
+                      <p className="student-info-value" style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{details.student.reg_number}</p>
                     </div>
                   </div>
                 )}
@@ -189,8 +189,8 @@ const CounsellorStudentDetail = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <FiInfo size={14} style={{ color: '#2ec4b6', flexShrink: 0 }} />
                     <div>
-                      <p style={{ margin: 0, fontSize: '0.7rem', color: '#94a3b8' }}>Section</p>
-                      <p style={{ margin: 0, fontSize: '0.82rem', color: '#e2e8f0', fontWeight: 600 }}>{details.student.section}</p>
+                      <p className="student-info-label" style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Section</p>
+                      <p className="student-info-value" style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{details.student.section}</p>
                     </div>
                   </div>
                 )}
@@ -198,8 +198,8 @@ const CounsellorStudentDetail = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <FiInfo size={14} style={{ color: '#2ec4b6', flexShrink: 0 }} />
                     <div>
-                      <p style={{ margin: 0, fontSize: '0.7rem', color: '#94a3b8' }}>Gender</p>
-                      <p style={{ margin: 0, fontSize: '0.82rem', color: '#e2e8f0', fontWeight: 600, textTransform: 'capitalize' }}>{details.student.gender}</p>
+                      <p className="student-info-label" style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Gender</p>
+                      <p className="student-info-value" style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600, textTransform: 'capitalize' }}>{details.student.gender}</p>
                     </div>
                   </div>
                 )}
@@ -266,7 +266,7 @@ const CounsellorStudentDetail = () => {
                       }}>
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#e2e8f0' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                               {s.date ? new Date(s.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'No date'}
                             </span>
                             {s.start_time && (
@@ -469,22 +469,22 @@ const CounsellorStudentDetail = () => {
               </div>
 
               {brief ? (
-                <div className="brief-content" style={{ marginTop: '1rem', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #667eea' }}>
+                <div className="brief-content ai-brief-panel" style={{ marginTop: '1rem', background: 'var(--surface-muted)', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #667eea' }}>
                   {latestQuestionnaire && (
-                    <div style={{ marginBottom: '1rem', paddingBottom: '0.8rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                      <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: '600' }}>Latest PHQ-9 Score:</span>
+                    <div style={{ marginBottom: '1rem', paddingBottom: '0.8rem', borderBottom: '1px solid var(--glass-border)' }}>
+                      <span className="brief-score-label" style={{ color: 'var(--text-primary)', fontSize: '0.9rem', fontWeight: '600' }}>Latest PHQ-9 Score:</span>
                       <span className={`phq9-score-pill severity-${phq9Severity(latestQuestionnaire.total_score).level}`} style={{ marginLeft: '0.5rem' }}>
                         {latestQuestionnaire.total_score} / 27
                       </span>
                     </div>
                   )}
-                  <p style={{ fontSize: '0.95rem', lineHeight: '1.6', color: '#e2e8f0', marginBottom: '0.5rem' }}>{brief.brief}</p>
-                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                  <p className="brief-text" style={{ fontSize: '0.95rem', lineHeight: '1.6', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>{brief.brief}</p>
+                  <div className="brief-meta" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                     <span>Analyzed from: {brief.messageCount} messages</span>
                   </div>
                 </div>
               ) : (
-                <p className="note-placeholder" style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#94a3b8' }}>
+                <p className="note-placeholder" style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                   Click to generate an AI summary of the student&apos;s recent bot interactions and view check-ins before your session.
                 </p>
               )}

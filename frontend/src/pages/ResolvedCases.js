@@ -129,8 +129,8 @@ const ResolvedCases = () => {
             style={{ padding: '48px 24px', textAlign: 'center' }}
           >
             <FiCheckCircle size={48} style={{ color: '#10b981', opacity: 0.4, marginBottom: '16px' }} />
-            <h3 style={{ margin: '0 0 8px', color: '#e2e8f0' }}>No resolved cases yet</h3>
-            <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>
+            <h3 style={{ margin: '0 0 8px', color: 'var(--text-primary)' }}>No resolved cases yet</h3>
+            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
               When you mark a crisis alert as resolved from the dashboard, it will appear here for follow-up tracking.
             </p>
           </motion.div>
@@ -168,7 +168,7 @@ const ResolvedCases = () => {
                         <FiUser size={13} />
                       </div>
                       <div>
-                        <p style={{ margin: 0, fontWeight: 700, fontSize: '0.92rem', color: '#e2e8f0' }}>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
                           {c.student_name || (c.student_id ? 'Registered Student' : 'Anonymous')}
                         </p>
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '2px' }}>
@@ -200,7 +200,7 @@ const ResolvedCases = () => {
                         padding: '8px 10px', marginBottom: '8px'
                       }}>
                         <FiAlertOctagon size={13} style={{ color: '#ef4444', flexShrink: 0, marginTop: '2px' }} />
-                        <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic', lineHeight: 1.5 }}>
+                        <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', fontStyle: 'italic', lineHeight: 1.5 }}>
                           "{c.message_snippet}"
                         </p>
                       </div>
@@ -208,7 +208,7 @@ const ResolvedCases = () => {
 
                     {/* Timestamps */}
                     <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: '#64748b' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
                         <FiAlertOctagon size={11} style={{ color: '#ef4444' }} />
                         Alert: {new Date(c.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </span>

@@ -73,13 +73,14 @@ function WatchFlagCard({ flag, onAcknowledge, onResolve }) {
 
   return (
     <motion.div
+      className="watch-flag-card"
       layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.97 }}
       style={{
-        background: '#fff',
-        border: `1px solid ${flag.tag === 'urgent' ? '#fca5a5' : '#e5e7eb'}`,
+        background: 'var(--surface-elevated)',
+        border: `1px solid ${flag.tag === 'urgent' ? '#fca5a5' : 'var(--glass-border)'}`,
         borderLeft: `4px solid ${flag.tag === 'urgent' ? '#dc2626' : '#f59e0b'}`,
         borderRadius: '10px',
         padding: '14px 16px',
@@ -99,10 +100,10 @@ function WatchFlagCard({ flag, onAcknowledge, onResolve }) {
             <FiUser size={14} />
           </div>
           <div>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: '0.92rem', color: '#111827' }}>
+            <p className="watch-flag-name" style={{ margin: 0, fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
               {flag.student_name}
             </p>
-            <p style={{ margin: 0, fontSize: '0.78rem', color: '#6b7280' }}>
+            <p className="watch-flag-meta" style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
               {flag.student_email || flag.student_id?.slice(0, 8)} 
               {flag.student_year && ` · Year ${flag.student_year}`}
               {flag.student_course && ` · ${flag.student_course}`}
@@ -113,33 +114,33 @@ function WatchFlagCard({ flag, onAcknowledge, onResolve }) {
       </div>
 
       {/* Mood stats */}
-      <div style={{
+      <div className="watch-flag-stats" style={{
         display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px',
-        background: '#f9fafb', borderRadius: '8px', padding: '10px',
+        background: 'var(--surface-muted)', borderRadius: '8px', padding: '10px',
         marginBottom: '10px',
       }}>
         <div style={{ textAlign: 'center' }}>
           <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: flag.tag === 'urgent' ? '#dc2626' : '#f59e0b' }}>
-            {flag.avg_mood_score ?? '—'}<span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>/10</span>
+            {flag.avg_mood_score ?? '—'}<span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>/10</span>
           </p>
-          <p style={{ margin: 0, fontSize: '0.71rem', color: '#6b7280' }}>Avg Mood</p>
+          <p style={{ margin: 0, fontSize: '0.71rem', color: 'var(--text-secondary)' }}>Avg Mood</p>
         </div>
-        <div style={{ textAlign: 'center', borderLeft: '1px solid #e5e7eb', borderRight: '1px solid #e5e7eb' }}>
-          <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#374151' }}>
+        <div style={{ textAlign: 'center', borderLeft: '1px solid var(--glass-border)', borderRight: '1px solid var(--glass-border)' }}>
+          <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
             {flag.consecutive_days ?? '—'}
           </p>
-          <p style={{ margin: 0, fontSize: '0.71rem', color: '#6b7280' }}>Days Low</p>
+          <p style={{ margin: 0, fontSize: '0.71rem', color: 'var(--text-secondary)' }}>Days Low</p>
         </div>
         <div style={{ textAlign: 'center' }}>
-          <p style={{ margin: '0', fontSize: '0.72rem', fontWeight: 600, color: '#374151', lineHeight: 1.4 }}>
+          <p style={{ margin: '0', fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.4 }}>
             {windowLabel}
           </p>
-          <p style={{ margin: 0, fontSize: '0.71rem', color: '#6b7280' }}>Window</p>
+          <p style={{ margin: 0, fontSize: '0.71rem', color: 'var(--text-secondary)' }}>Window</p>
         </div>
       </div>
 
       {/* Reason */}
-      <p style={{ margin: '0 0 10px', fontSize: '0.8rem', color: '#4b5563', lineHeight: 1.5 }}>
+      <p className="watch-flag-reason" style={{ margin: '0 0 10px', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
         <FiTrendingDown size={11} style={{ marginRight: 4, verticalAlign: 'middle', color: '#dc2626' }} />
         {flag.reason}
       </p>
@@ -177,7 +178,7 @@ function WatchFlagCard({ flag, onAcknowledge, onResolve }) {
       )}
 
       {flag.acknowledged && !flag.resolved && (
-        <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: '#6b7280', textAlign: 'right' }}>
+        <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: 'var(--text-secondary)', textAlign: 'right' }}>
           ✓ Acknowledged {flag.acknowledged_at ? new Date(flag.acknowledged_at).toLocaleDateString() : ''}
         </p>
       )}
@@ -472,7 +473,7 @@ const CounsellorDashboard = () => {
                     </span>
                   )}
                 </h2>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#64748b' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                   <span className="live-indicator" style={{ width: 8, height: 8, background: '#ef4444', borderRadius: '50%', display: 'inline-block' }}></span>
                   Real-time Feed
                 </div>
@@ -484,20 +485,20 @@ const CounsellorDashboard = () => {
                     <motion.div key={alert.id} layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
                       style={{
                         padding: '12px', marginBottom: '8px', borderRadius: '8px',
-                        background: alert.severity === 'HIGH' ? '#fef2f2' : '#f8fafc',
-                        border: `1px solid ${alert.severity === 'HIGH' ? '#fecaca' : '#e2e8f0'}`,
+                        background: alert.severity === 'HIGH' ? 'var(--crisis-high-bg)' : 'var(--crisis-normal-bg)',
+                        border: `1px solid ${alert.severity === 'HIGH' ? 'var(--crisis-high-border)' : 'var(--crisis-normal-border)'}`,
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                       }}
                     >
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>
+                          <span className="crisis-alert-name" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                             {alert.student_name || alert.student_profiles?.name || (alert.student_id ? 'Authenticated Student' : 'Anonymous Student')}
                           </span>
                           {alert.severity === 'HIGH' && <TagBadge tag="urgent" />}
                         </div>
-                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#475569', fontStyle: 'italic' }}>"{alert.message_snippet}"</p>
-                        <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: '#94a3b8' }}>
+                        <p className="crisis-alert-message" style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>"{alert.message_snippet}"</p>
+                        <p className="crisis-alert-time" style={{ margin: '4px 0 0', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
                           {new Date(alert.created_at).toLocaleString()}
                         </p>
                       </div>
@@ -508,12 +509,10 @@ const CounsellorDashboard = () => {
                             title={`Email ${alert.student_name || 'Student'}`}
                             style={{
                               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                              width: '28px', height: '28px', background: '#fff',
-                              border: '1px solid #cbd5e1', borderRadius: '6px',
+                              width: '28px', height: '28px', background: 'var(--surface-elevated)',
+                              border: '1px solid var(--glass-border)', borderRadius: '6px',
                               color: '#ef4444', cursor: 'pointer', transition: 'all 0.2s', textDecoration: 'none'
                             }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.borderColor = '#fca5a5'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
                           >
                             <FiMail size={14} />
                           </a>
@@ -524,12 +523,10 @@ const CounsellorDashboard = () => {
                             title={`Call ${alert.student_name || 'Student'}`}
                             style={{
                               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                              width: '28px', height: '28px', background: '#fff',
-                              border: '1px solid #cbd5e1', borderRadius: '6px',
+                              width: '28px', height: '28px', background: 'var(--surface-elevated)',
+                              border: '1px solid var(--glass-border)', borderRadius: '6px',
                               color: '#ef4444', cursor: 'pointer', transition: 'all 0.2s', textDecoration: 'none'
                             }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.borderColor = '#fca5a5'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
                           >
                             <FiPhone size={14} />
                           </a>
@@ -538,7 +535,7 @@ const CounsellorDashboard = () => {
                           <button
                             onClick={() => navigate(`/counsellor/student/${alert.student_id}`)}
                             title="View student profile & session history"
-                            style={{ padding: '6px 10px', fontSize: '0.75rem', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer' }}>
+                            style={{ padding: '6px 10px', fontSize: '0.75rem', background: 'var(--surface-elevated)', border: '1px solid var(--glass-border)', borderRadius: '6px', cursor: 'pointer', color: 'var(--text-primary)' }}>
                             View Profile
                           </button>
                         )}
@@ -559,7 +556,7 @@ const CounsellorDashboard = () => {
                       </div>
                     </motion.div>
                   )) : (
-                    <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8' }}>
+                    <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-secondary)' }}>
                       <FiCheckCircle size={24} style={{ marginBottom: 8, color: '#10b981', opacity: 0.5 }} />
                       <p style={{ margin: 0, fontSize: '0.85rem' }}>No active crisis signals.</p>
                     </div>
@@ -667,26 +664,26 @@ const CounsellorDashboard = () => {
       <AnimatePresence>
         {notesModalSessionId && (
           <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <motion.div className="modal-content glass-card" initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} style={{ background: '#fff', padding: '2rem', borderRadius: '12px', width: '90%', maxWidth: '500px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+            <motion.div className="modal-content glass-card session-notes-modal" initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} style={{ background: 'var(--surface-elevated)', padding: '2rem', borderRadius: '12px', width: '90%', maxWidth: '500px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#1e293b' }}>Add Session Notes</h3>
-                <FiX onClick={() => setNotesModalSessionId(null)} style={{ cursor: 'pointer', color: '#64748b' }} size={24} />
+                <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-primary)' }}>Add Session Notes</h3>
+                <FiX onClick={() => setNotesModalSessionId(null)} style={{ cursor: 'pointer', color: 'var(--text-secondary)' }} size={24} />
               </div>
               
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#475569', marginBottom: '0.5rem' }}>Observations & Notes *</label>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Observations & Notes *</label>
                 <textarea
                   value={notesText}
                   onChange={e => setNotesText(e.target.value)}
-                  style={{ width: '100%', minHeight: '120px', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.875rem', resize: 'vertical' }}
+                  style={{ width: '100%', minHeight: '120px', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--input-border)', fontSize: '0.875rem', resize: 'vertical', background: 'var(--input-bg)', color: 'var(--text-primary)' }}
                   placeholder="Record your clinical observations here..."
                   required
                 />
               </div>
 
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#475569', marginBottom: '0.5rem' }}>Identified Risk Level</label>
-                <select value={riskLevel} onChange={e => setRiskLevel(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.875rem', backgroundColor: '#fff' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Identified Risk Level</label>
+                <select value={riskLevel} onChange={e => setRiskLevel(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--input-border)', fontSize: '0.875rem', backgroundColor: 'var(--input-bg)', color: 'var(--text-primary)' }}>
                   <option value="low">Low Risk</option>
                   <option value="medium">Medium Risk</option>
                   <option value="high">High Risk</option>
@@ -694,18 +691,18 @@ const CounsellorDashboard = () => {
               </div>
 
               <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#475569', marginBottom: '0.5rem' }}>Next Action Steps</label>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Next Action Steps</label>
                 <input
                   type="text"
                   value={nextAction}
                   onChange={e => setNextAction(e.target.value)}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--input-border)', fontSize: '0.875rem', background: 'var(--input-bg)', color: 'var(--text-primary)' }}
                   placeholder="e.g., Follow-up in 2 weeks"
                 />
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <button onClick={() => setNotesModalSessionId(null)} style={{ padding: '0.5rem 1rem', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Skip for now</button>
+                <button onClick={() => setNotesModalSessionId(null)} style={{ padding: '0.5rem 1rem', background: 'var(--surface-muted)', color: 'var(--text-primary)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Skip for now</button>
                 <button onClick={submitSessionNotes} disabled={savingNotes || !notesText.trim()} style={{ padding: '0.5rem 1rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: (savingNotes || !notesText.trim()) ? 'not-allowed' : 'pointer', fontWeight: 600 }}>
                   {savingNotes ? 'Saving...' : 'Save Notes Securely'}
                 </button>

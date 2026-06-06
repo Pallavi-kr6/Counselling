@@ -1,6 +1,6 @@
 .progress-reports {
   min-height: 100vh;
-  background: #f8f9fa;
+  background: transparent;
   padding: 20px 0;
 }
 
@@ -11,22 +11,23 @@
 }
 
 .progress-reports h1 {
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 30px;
   text-align: center;
 }
 
 .create-report-section {
-  background: white;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-soft);
   margin-bottom: 30px;
 }
 
 .create-report-section h2 {
   margin-bottom: 20px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .form-row {
@@ -362,4 +363,41 @@
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+[data-theme='dark'] .progress-reports h1,
+[data-theme='dark'] .create-report-section h2,
+[data-theme='dark'] .form-section-modern h3,
+[data-theme='dark'] .report-card-modern h3,
+[data-theme='dark'] .hero-content h2 {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .create-report-section,
+[data-theme='dark'] .form-section-modern,
+[data-theme='dark'] .report-card-modern {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .form-section-modern input,
+[data-theme='dark'] .form-section-modern textarea,
+[data-theme='dark'] .form-section-modern select,
+[data-theme='dark'] .academic-row input,
+[data-theme='dark'] .academic-row select,
+[data-theme='dark'] .academic-row textarea {
+  background: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .btn-ghost {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--glass-border);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .table-header-row {
+  border-bottom-color: var(--glass-border);
 }

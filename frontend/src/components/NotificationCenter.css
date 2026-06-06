@@ -306,3 +306,39 @@
     justify-content: flex-end;
   }
 }
+
+[data-theme='dark'] .header-top h2,
+[data-theme='dark'] .card-title {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .card-message,
+[data-theme='dark'] .tab,
+[data-theme='dark'] .mark-all-btn {
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .tab:hover,
+[data-theme='dark'] .tab.active {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .notification-card {
+  background: var(--surface-elevated);
+  border-color: var(--glass-border);
+}
+
+[data-theme='dark'] .mark-all-btn,
+[data-theme='dark'] .action-btn {
+  background: var(--surface-muted);
+  border-color: var(--glass-border);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .filter-tabs {
+  border-bottom-color: var(--glass-border);
+}
+
+[data-theme='dark'] .card-time {
+  color: var(--text-secondary);
+}
