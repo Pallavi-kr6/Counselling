@@ -457,7 +457,7 @@ const MoodTracking = () => {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             
-            <motion.div className="glass-card" variants={itemVariants} style={{ padding: '2.5rem', background: 'linear-gradient(135deg, rgba(230, 247, 246, 0.9), rgba(255, 255, 255, 0.95))', border: '1px solid rgba(46, 186, 168, 0.15)' }}>
+            <motion.div className="glass-card" variants={itemVariants} style={{ padding: '2.5rem', background: 'linear-gradient(135deg, rgba(43, 197, 184, 0.9), rgba(255, 255, 255, 0.95))', border: '1px solid rgba(46, 186, 168, 0.15)' }}>
               <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
                 <FiHeart size={24} style={{ color: 'var(--primary-dark)' }} />
                 <h3 style={{ fontSize: '1.2rem', color: 'var(--primary-dark)' }}>Gentle Insight</h3>

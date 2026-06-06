@@ -436,12 +436,7 @@ const CounsellorDashboard = () => {
       icon: <FiCheckCircle />,   
       color: '#10B981' 
     },
-    {
-      label: urgentCount > 0 ? `${urgentCount} Urgent` : `${watchCount} Watch`,
-      value: watchFlags.length,
-      icon: urgentCount > 0 ? <FiAlertOctagon /> : <FiAlertTriangle />,
-      color: urgentCount > 0 ? '#dc2626' : '#f59e0b',
-    },
+  
   ].map((stat, i) => (
     <motion.div key={i} className="stat-card-mini glass-card" variants={cardVariants}>
       <div className="stat-icon-wrapper" style={{ color: stat.color }}>
