@@ -75,14 +75,22 @@ const ProgressReports = () => {
         setCurrentReport(existing.data.report);
       } else {
         const student = students.find(s => s.user_id === selectedStudent);
+        // student.name might be email-prefix — use a display name heuristic
+        const rawName = student?.name || '';
+        // If it looks like an email (no spaces, contains @), use just the part before @
+        const displayName = rawName.includes('@')
+          ? rawName.split('@')[0]
+          : rawName || 'Student';
+        const dept = student?.department || '';
+        const year = student?.year ? `Year ${student.year}` : '';
         setCurrentReport({
           student_id: selectedStudent,
           week_start: weekStartStr,
           week_end: weekEndStr,
-          student_name: student?.name || 'Student',
+          student_name: displayName,
           register_number: '',
-          department_year: `${student?.department || ''} / ${student?.year || ''}`,
-          counsellor_name: user.name || 'Counsellor',
+          department_year: [dept, year].filter(Boolean).join(' / '),
+          counsellor_name: user.name || user.email?.split('@')[0] || 'Counsellor',
           academic_performance: [],
           previous_goals_review: [],
           issues_challenges: [],
@@ -99,7 +107,7 @@ const ProgressReports = () => {
           student_commitment: false,
           student_signature: '',
           student_signature_date: new Date().toISOString().split('T')[0],
-          counsellor_signature: user.name || '',
+          counsellor_signature: user.name || user.email?.split('@')[0] || '',
           counsellor_signature_date: new Date().toISOString().split('T')[0]
         });
       }
@@ -285,8 +293,10 @@ const ProgressReportForm = ({ report, onSave, onCancel }) => {
           <h3><FiUser /> Student Information</h3>
           <div className="form-grid-3">
             <div className="input-group-modern">
-              <label>Student Name</label>
-              <input type="text" className="glass-input" value={formData.student_name} readOnly />
+              <label>Student Name <span style={{fontSize:'0.75rem', color:'#94a3b8', fontWeight:400}}>(editable)</span></label>
+              <input type="text" className="glass-input" value={formData.student_name}
+                onChange={(e) => setFormData({...formData, student_name: e.target.value})}
+                placeholder="Enter student's full name" />
             </div>
             <div className="input-group-modern">
               <label>Register Number</label>

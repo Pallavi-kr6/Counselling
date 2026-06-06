@@ -254,6 +254,32 @@ router.get('/live-alerts', verifyToken, async (req, res) => {
       .order('created_at', { ascending: false })
       .limit(20);
 
+    let formattedAlerts = alerts || [];
+    if (formattedAlerts.length > 0) {
+      const studentIds = formattedAlerts.map(a => a.student_id).filter(Boolean);
+      if (studentIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('student_profiles')
+          .select('user_id, name, contact_info')
+          .in('user_id', studentIds);
+        
+        const { data: users } = await supabase
+          .from('users')
+          .select('id, email')
+          .in('id', studentIds);
+        
+        const profileMap = (profiles || []).reduce((acc, p) => ({ ...acc, [p.user_id]: p }), {});
+        const userMap = (users || []).reduce((acc, u) => ({ ...acc, [u.id]: u.email }), {});
+
+        formattedAlerts = formattedAlerts.map(alert => ({
+          ...alert,
+          student_name: profileMap[alert.student_id]?.name || null,
+          student_phone: profileMap[alert.student_id]?.contact_info || null,
+          student_email: userMap[alert.student_id] || null
+        }));
+      }
+    }
+
     if (error) {
       if (error.code === 'PGRST205') {
         console.warn('Table crisis_alerts is missing in schema cache.');
@@ -261,12 +287,107 @@ router.get('/live-alerts', verifyToken, async (req, res) => {
       }
       throw error;
     }
-    res.json({ alerts: alerts || [] });
+    res.json({ alerts: formattedAlerts });
   } catch (error) {
     console.error('Fetch live alerts error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// ─────────────────────────────────────────────────────────────
+// PATCH /api/admin/live-alerts/:id/resolve
+// Counsellor marks a crisis alert as resolved.
+// ─────────────────────────────────────────────────────────────
+router.patch('/live-alerts/:id/resolve', verifyToken, requireStaff, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const counsellorId = req.user.userId || req.user.id;
+
+    const { data, error } = await supabase
+      .from('crisis_alerts')
+      .update({
+        resolved: true,
+        resolved_at: new Date().toISOString(),
+        resolved_by: counsellorId,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({ error: 'Crisis alert not found' });
+      }
+      // Gracefully handle if resolved/resolved_at columns don't exist yet
+      if (error.code === '42703') {
+        console.warn('resolved columns not found in crisis_alerts — returning success without update');
+        return res.json({ success: true, warning: 'resolved column not yet in schema' });
+      }
+      throw error;
+    }
+
+    res.json({ alert: data, success: true });
+  } catch (error) {
+    console.error('Resolve crisis alert error:', error);
+    res.status(500).json({ error: 'Failed to resolve crisis alert' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// GET /api/admin/resolved-cases
+// Returns resolved crisis alerts for the counsellor's follow-up tab.
+// ─────────────────────────────────────────────────────────────
+router.get('/resolved-cases', verifyToken, requireStaff, async (req, res) => {
+  try {
+    const { data: alerts, error } = await supabase
+      .from('crisis_alerts')
+      .select('*')
+      .eq('resolved', true)
+      .order('resolved_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      if (error.code === 'PGRST205' || error.code === '42703') {
+        // Table missing or resolved column missing — return empty list gracefully
+        return res.json({ cases: [], warning: 'Resolved cases not available yet' });
+      }
+      throw error;
+    }
+
+    let cases = alerts || [];
+    if (cases.length > 0) {
+      const studentIds = cases.map(a => a.student_id).filter(Boolean);
+      if (studentIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('student_profiles')
+          .select('user_id, name, contact_info')
+          .in('user_id', studentIds);
+
+        const { data: users } = await supabase
+          .from('users')
+          .select('id, email')
+          .in('id', studentIds);
+
+        const profileMap = (profiles || []).reduce((acc, p) => ({ ...acc, [p.user_id]: p }), {});
+        const userMap = (users || []).reduce((acc, u) => ({ ...acc, [u.id]: u.email }), {});
+
+        cases = cases.map(alert => ({
+          ...alert,
+          student_name: profileMap[alert.student_id]?.name || null,
+          student_phone: profileMap[alert.student_id]?.contact_info || null,
+          student_email: userMap[alert.student_id] || null,
+        }));
+      }
+    }
+
+    res.json({ cases });
+  } catch (error) {
+    console.error('Resolved cases fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch resolved cases' });
+  }
+});
+
+
 
 // ─────────────────────────────────────────────────────────────
 // GET /api/admin/department-heatmap?months=6

@@ -6,7 +6,6 @@ import { isSameDay, subDays } from 'date-fns';
 import { motion } from 'framer-motion';
 import { 
   FiCalendar, 
-  FiHeart, 
   FiBook, 
   FiArrowRight, 
   FiWind,
@@ -14,11 +13,9 @@ import {
   FiMoon,
   FiActivity,
   FiPlayCircle,
-  FiTrendingUp,
   FiCheckCircle,
   FiXCircle
 } from 'react-icons/fi';
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import './Dashboard.css';
 
 const StudentDashboard = () => {
@@ -29,9 +26,6 @@ const StudentDashboard = () => {
   const [upcomingAppointments, setUpcomingAppointments] = useState([]);
   const [moodStreak, setMoodStreak] = useState(0);
   const [hasMoodToday, setHasMoodToday] = useState(false);
-  const [aiMoodLogs, setAiMoodLogs] = useState([]);
-  const [averageMoodScore, setAverageMoodScore] = useState(null);
-  const [moodInsight, setMoodInsight] = useState('');
   const [pendingReassignmentNotification, setPendingReassignmentNotification] = useState(null);
   const [reassignmentLoading, setReassignmentLoading] = useState(false);
   const [reassignmentMessage, setReassignmentMessage] = useState('');
@@ -91,34 +85,7 @@ const StudentDashboard = () => {
         console.error('Failed to load streak dates', err);
       }
 
-      // Fetch AI sentiment logs
-      try {
-        const moodResponse = await api.get('/mood/ai-logs-trend');
-        // map data for recharts
-        const rawLogs = moodResponse.data.logs || [];
-        const formattedLogs = rawLogs.map(log => ({
-          date: new Date(log.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          score: log.score,
-          label: log.label
-        }));
-        setAiMoodLogs(formattedLogs);
 
-        const last5 = formattedLogs.slice(-5);
-        if (last5.length > 0) {
-          const avgScore = last5.reduce((sum, log) => sum + log.score, 0) / last5.length;
-          const roundedScore = avgScore.toFixed(1);
-          setAverageMoodScore(roundedScore);
-
-          try {
-            const insightResponse = await api.get(`/mood/insight?score=${roundedScore}`);
-            setMoodInsight(insightResponse.data.insight);
-          } catch (e) {
-            console.error('Failed to load insight', e);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load AI mood trend', err);
-      }
 
     } catch (err) {
       console.error('Error fetching student dashboard:', err);

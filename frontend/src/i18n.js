@@ -8,11 +8,13 @@ const resources = {
       'nav.home': 'Home',
       'nav.profile': 'Profile',
       'nav.appointments': 'Appointments',
-      'nav.mood': 'Mood Tracking',
+      'nav.mood': 'Mood',
       'nav.resources': 'Resources',
       'nav.emergency': 'Emergency',
       'nav.logout': 'Logout',
-      'nav.aiCounselling': 'AI Counsellor'
+      'nav.aiCounselling': 'AI Counselling',
+      'nav.voiceRipple': 'Voice Ripple',
+      'nav.counsellors': 'Counsellors'
     }
   },
   hi: {
@@ -21,11 +23,13 @@ const resources = {
       'nav.home': 'होम',
       'nav.profile': 'प्रोफ़ाइल',
       'nav.appointments': 'अपॉइंटमेंट',
-      'nav.mood': 'मूड ट्रैकिंग',
+      'nav.mood': 'मूड',
       'nav.resources': 'संसाधन',
       'nav.emergency': 'आपातकाल',
       'nav.logout': 'लॉगआउट',
-      'nav.aiCounselling': 'एआई काउंसलर'
+      'nav.aiCounselling': 'एआई काउंसलिंग',
+      'nav.voiceRipple': 'वॉइस रिपल',
+      'nav.counsellors': 'सलाहकार'
     }
   },
   ta: {
@@ -34,11 +38,13 @@ const resources = {
       'nav.home': 'வீடு',
       'nav.profile': 'சுயவிவரம்',
       'nav.appointments': 'நியமனங்கள்',
-      'nav.mood': 'மனநிலை கண்காணிப்பு',
+      'nav.mood': 'மனநிலை',
       'nav.resources': 'வளங்கள்',
       'nav.emergency': 'அவசர',
       'nav.logout': 'வெளியேறு',
-      'nav.aiCounselling': 'ஏஐ ஆலோசகர்'
+      'nav.aiCounselling': 'ஏஐ ஆலோசனை',
+      'nav.voiceRipple': 'குரல் அலை',
+      'nav.counsellors': 'ஆலோசகர்கள்'
     }
   },
   te: {
@@ -47,11 +53,13 @@ const resources = {
       'nav.home': 'హోమ్',
       'nav.profile': 'ప్రొఫైల్',
       'nav.appointments': 'నియామకాలు',
-      'nav.mood': 'మూడ్ ట్రాకింగ్',
+      'nav.mood': 'మూడ్',
       'nav.resources': 'వనరులు',
       'nav.emergency': 'అత్యవసర',
       'nav.logout': 'లాగ్అవుట్',
-      'nav.aiCounselling': 'ఏఐ కౌన్సిలర్'
+      'nav.aiCounselling': 'ఏఐ కౌన్సెలింగ్',
+      'nav.voiceRipple': 'వాయిస్ రిపుల్',
+      'nav.counsellors': 'కౌన్సిలర్లు'
     }
   }
 };

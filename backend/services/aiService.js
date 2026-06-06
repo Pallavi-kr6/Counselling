@@ -22,10 +22,11 @@ const GROQ_MODELS = [
 async function tryGroq(messages) {
   if (!process.env.GROQ_API_KEY) {
     console.error('❌ GROQ_API_KEY is not set in environment variables!');
-    return null;
+    return { success: false, error: new Error('GROQ_API_KEY is not set') };
   }
 
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  let lastError = null;
 
   for (const model of GROQ_MODELS) {
     try {
@@ -40,17 +41,18 @@ async function tryGroq(messages) {
       const reply = res.choices[0].message.content;
       console.log(`✅ Groq success with model: ${model}`);
       console.log(`📤 Reply preview: ${reply.slice(0, 80)}...`);
-      return reply;
+      return { success: true, reply };
     } catch (err) {
       // Log the FULL error so you can see what's actually failing
       console.error(`❌ Groq model ${model} failed:`, err.message);
       if (err.status) console.error(`   HTTP Status: ${err.status}`);
       if (err.error) console.error(`   Error detail:`, JSON.stringify(err.error));
+      lastError = err;
     }
   }
 
   console.error('❌ ALL Groq models failed. Check your API key and network.');
-  return null;
+  return { success: false, error: lastError };
 }
 
 async function generateCounselingResponse(userId, userMessage, contextMessages = []) {
@@ -78,13 +80,19 @@ async function generateCounselingResponse(userId, userMessage, contextMessages =
 
   console.log(`📨 Sending to Groq — history length: ${formattedHistory.length} messages`);
 
-  const groqReply = await tryGroq(messages);
+  const result = await tryGroq(messages);
 
-  if (groqReply) return groqReply;
+  if (result.success) return result.reply;
 
   // If Groq genuinely failed, return an honest error message
   // NOT a fake scripted response that hides the real problem
   console.error('⚠️ Groq unavailable — returning error message to user');
+  
+  const err = result.error;
+  if (err && (err.message?.includes('restricted') || (err.error && JSON.stringify(err.error).includes('restricted')))) {
+    return "Chatbot Error: The Groq API organization has been restricted. Please check your Groq account billing/limits or update GROQ_API_KEY in your .env file.";
+  }
+
   return "I'm having a little trouble connecting right now. Please try again in a moment — I'm here for you. 💙";
 }
 

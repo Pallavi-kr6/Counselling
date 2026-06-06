@@ -19,7 +19,9 @@ import {
   FiMoon,
   FiSettings,
   FiAward,
-  FiZap
+  FiZap,
+  FiHome,
+  FiCheckSquare
 } from 'react-icons/fi';
 import PersonalizationPanel from './PersonalizationPanel';
 import './Navbar.css';
@@ -39,16 +41,16 @@ const Navbar = () => {
   };
 
   const baseNavItems = [
-    ...(user ? [{ path: '/dashboard', icon: FiSettings, label: 'Dashboard' }] : []),
+    ...(user ? [{ path: '/dashboard', icon: FiHome, label: 'Dashboard' }] : []),
     { path: '/profile', icon: FiUser, label: t('nav.profile') },
     { path: '/appointments', icon: FiCalendar, label: t('nav.appointments') }
   ];
 
   const studentNavItems = [
     { path: '/mood', icon: FiHeart, label: t('nav.mood') },
-    { path: '/voice-ripple', icon: FiZap, label: 'Voice Ripple' },
+    { path: '/voice-ripple', icon: FiZap, label: t('nav.voiceRipple') },
     { path: '/resources', icon: FiBook, label: t('nav.resources') },
-    { path: '/professionals', icon: FiUsers, label: 'Counsellors' },
+    { path: '/professionals', icon: FiUsers, label: t('nav.counsellors') },
     { path: '/emergency', icon: FiPhone, label: t('nav.emergency') },
     { path: '/ai-counselling', icon: FiMessageCircle, label: t('nav.aiCounselling') }
   ];
@@ -56,6 +58,7 @@ const Navbar = () => {
   const counsellorNavItems = [
     { path: '/sessions-summary', icon: FiUsers, label: 'Student Details' },
     { path: '/student-echoes', icon: FiAward, label: 'Student Echoes' },
+    { path: '/resolved-cases', icon: FiCheckSquare, label: 'Resolved Cases' },
     { path: '/resources', icon: FiBook, label: t('nav.resources') }
   ];
 
@@ -88,6 +91,7 @@ const Navbar = () => {
                 key={item.path}
                 to={item.path}
                 className={`nav-link ${isActive ? 'active' : ''}`}
+                title={item.label}
               >
                 <motion.div
                   whileHover={{ y: -2 }}
@@ -117,7 +121,7 @@ const Navbar = () => {
             <FiSettings />
           </motion.button>
 
-          <button className="nav-link logout-btn" onClick={handleLogout}>
+          <button className="nav-link logout-btn" onClick={handleLogout} title={t('nav.logout')}>
             <span className="nav-link-content">
               <FiLogOut />
               <span className="nav-link-text">{t('nav.logout')}</span>

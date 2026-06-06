@@ -600,6 +600,7 @@ async function handleCrisisIfDetected({ message, studentId, studentEmail, sessio
       id: alertId,
       student_id: studentId,
       student_email: studentEmail,
+      student_name: studentProfile?.name || 'Authenticated Student',
       message_snippet: message.slice(0, 280),
       keywords_matched: matched,
       assigned_counsellor_id: counsellor.id,

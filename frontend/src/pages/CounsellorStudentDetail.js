@@ -14,7 +14,7 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
-import { FiArrowLeft, FiUser, FiActivity, FiTrendingUp, FiClock, FiCheckCircle, FiCpu, FiFileText, FiAlertTriangle, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import { FiArrowLeft, FiUser, FiActivity, FiTrendingUp, FiClock, FiCheckCircle, FiCpu, FiFileText, FiAlertTriangle, FiChevronDown, FiChevronUp, FiMail, FiPhone, FiInfo, FiCalendar, FiXCircle } from 'react-icons/fi';
 import { PHQ9_QUESTIONS, PHQ9_OPTION_LABELS, phq9Severity } from '../constants/phq9Questions';
 import './Dashboard.css';
 
@@ -50,6 +50,7 @@ const CounsellorStudentDetail = () => {
   const [questionnaires, setQuestionnaires] = useState([]);
   const [phq9SectionOpen, setPhq9SectionOpen] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
+  const [sessionHistoryOpen, setSessionHistoryOpen] = useState(true);
 
   const fetchDetails = useCallback(async () => {
     try {
@@ -151,9 +152,41 @@ const CounsellorStudentDetail = () => {
                 <div className="avatar-circle"><FiUser /></div>
                 <div className="hero-text">
                   <h2>{details?.student?.name}</h2>
-                  <p>{details?.student?.department} • {details?.student?.course} • {details?.student?.year}</p>
+                  <p>{details?.student?.department} • {details?.student?.course} • Year {details?.student?.year}</p>
                 </div>
               </div>
+
+              {/* Contact & Profile Info Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', margin: '14px 0', padding: '14px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                {details?.student?.email && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FiMail size={14} style={{ color: '#2ec4b6', flexShrink: 0 }} />
+                    <div>
+                      <p style={{ margin: 0, fontSize: '0.7rem', color: '#94a3b8' }}>Email</p>
+                      <p style={{ margin: 0, fontSize: '0.82rem', color: '#e2e8f0', fontWeight: 600, wordBreak: 'break-all' }}>{details.student.email}</p>
+                    </div>
+                  </div>
+                )}
+                {details?.student?.contact_info && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FiPhone size={14} style={{ color: '#2ec4b6', flexShrink: 0 }} />
+                    <div>
+                      <p style={{ margin: 0, fontSize: '0.7rem', color: '#94a3b8' }}>Phone</p>
+                      <p style={{ margin: 0, fontSize: '0.82rem', color: '#e2e8f0', fontWeight: 600 }}>{details.student.contact_info}</p>
+                    </div>
+                  </div>
+                )}
+                {details?.student?.gender && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FiInfo size={14} style={{ color: '#2ec4b6', flexShrink: 0 }} />
+                    <div>
+                      <p style={{ margin: 0, fontSize: '0.7rem', color: '#94a3b8' }}>Gender</p>
+                      <p style={{ margin: 0, fontSize: '0.82rem', color: '#e2e8f0', fontWeight: 600, textTransform: 'capitalize' }}>{details.student.gender}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="hero-stats">
                 <div className="hero-stat-pill">
                   <FiCheckCircle className="text-success" />
@@ -163,7 +196,82 @@ const CounsellorStudentDetail = () => {
                   <FiClock className="text-warning" />
                   <span>{details?.sessions?.scheduled} Scheduled</span>
                 </div>
+                {details?.sessions?.cancelled > 0 && (
+                  <div className="hero-stat-pill">
+                    <FiXCircle style={{ color: '#ef4444' }} />
+                    <span>{details.sessions.cancelled} Cancelled</span>
+                  </div>
+                )}
               </div>
+            </motion.div>
+
+            {/* ── Session History ── */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.04 }}
+              className="glass-card"
+              style={{ padding: '0', marginBottom: '1rem', overflow: 'hidden', borderRadius: '12px' }}
+            >
+              <button
+                type="button"
+                onClick={() => setSessionHistoryOpen(o => !o)}
+                style={{
+                  width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '14px 18px', background: 'none', border: 'none', cursor: 'pointer',
+                  borderBottom: sessionHistoryOpen ? '1px solid rgba(255,255,255,0.08)' : 'none',
+                }}
+              >
+                <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem' }}>
+                  <FiCalendar style={{ color: '#2ec4b6' }} /> Session History
+                  <span style={{ background: 'rgba(46,196,182,0.15)', color: '#2ec4b6', borderRadius: '20px', padding: '2px 8px', fontSize: '0.75rem', fontWeight: 700 }}>
+                    {details?.sessionHistory?.length || 0}
+                  </span>
+                </h2>
+                {sessionHistoryOpen ? <FiChevronUp style={{ color: '#94a3b8' }} /> : <FiChevronDown style={{ color: '#94a3b8' }} />}
+              </button>
+
+              {sessionHistoryOpen && (
+                <div style={{ maxHeight: '340px', overflowY: 'auto', padding: '10px 14px' }}>
+                  {details?.sessionHistory?.length > 0 ? details.sessionHistory.map((s, i) => {
+                    const statusColors = {
+                      completed: { bg: '#f0fdf4', color: '#16a34a', border: '#86efac' },
+                      cancelled: { bg: '#fef2f2', color: '#dc2626', border: '#fca5a5' },
+                      pending: { bg: '#fffbeb', color: '#d97706', border: '#fcd34d' },
+                    };
+                    const sc = statusColors[s.status] || statusColors.pending;
+                    return (
+                      <div key={s.id || i} style={{
+                        padding: '10px 12px', marginBottom: '8px', borderRadius: '8px',
+                        background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px'
+                      }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#e2e8f0' }}>
+                              {s.date ? new Date(s.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'No date'}
+                            </span>
+                            {s.start_time && (
+                              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{s.start_time?.slice(0,5)} – {s.end_time?.slice(0,5)}</span>
+                            )}
+                          </div>
+                          {s.notes && (
+                            <p style={{ margin: 0, fontSize: '0.78rem', color: '#94a3b8', fontStyle: 'italic', lineHeight: 1.5 }}>"{ s.notes}"</p>
+                          )}
+                        </div>
+                        <span style={{
+                          flexShrink: 0, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}`,
+                          borderRadius: '20px', padding: '2px 9px', fontSize: '0.72rem', fontWeight: 700, textTransform: 'capitalize'
+                        }}>{s.status}</span>
+                      </div>
+                    );
+                  }) : (
+                    <div style={{ textAlign: 'center', padding: '20px 0', color: '#94a3b8', fontSize: '0.85rem' }}>
+                      No sessions recorded yet.
+                    </div>
+                  )}
+                </div>
+              )}
             </motion.div>
 
             <motion.div

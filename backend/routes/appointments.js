@@ -807,10 +807,10 @@ router.get('/counsellor/student/:studentId', verifyToken, async (req, res) => {
     const counsellorId = req.user.userId;
     const studentId = req.params.studentId;
 
-    // Student profile
+    // Student profile (including gender and contact_info)
     const { data: profile, error: profileError } = await supabase
       .from('student_profiles')
-      .select('user_id, name, year, course, department, assigned_counsellor_id')
+      .select('user_id, name, year, course, department, gender, contact_info, assigned_counsellor_id')
       .eq('user_id', studentId)
       .single();
 
@@ -821,12 +821,20 @@ router.get('/counsellor/student/:studentId', verifyToken, async (req, res) => {
       throw profileError;
     }
 
-    // Ensure relationship / get sessions
+    // Fetch student email from users table
+    const { data: userRecord } = await supabase
+      .from('users')
+      .select('email')
+      .eq('id', studentId)
+      .single();
+
+    // Ensure relationship / get full session history
     const { data: appts, error: apptError } = await supabase
       .from('appointments')
-      .select('id, status')
+      .select('id, date, start_time, end_time, status, notes, created_at')
       .eq('counsellor_id', counsellorId)
-      .eq('student_id', studentId);
+      .eq('student_id', studentId)
+      .order('date', { ascending: false });
 
     if (apptError) throw apptError;
 
@@ -855,8 +863,12 @@ router.get('/counsellor/student/:studentId', verifyToken, async (req, res) => {
     if (moodError) throw moodError;
 
     res.json({
-      student: profile || { user_id: studentId },
+      student: {
+        ...profile,
+        email: userRecord?.email || null,
+      },
       sessions: sessionCounts,
+      sessionHistory: appts || [],
       moodEntries: moods || []
     });
   } catch (error) {
@@ -998,34 +1010,42 @@ router.get('/counsellor/:userId', verifyToken, async (req, res) => {
     // Fetch student details for each appointment
     const appointmentsWithStudents = await Promise.all(
       (appointments || []).map(async (appt) => {
-        // First try to get student profile
+        // First try to get student profile (no email column here)
         let { data: studentProfile } = await supabase
           .from('student_profiles')
-          .select('name, email')
+          .select('name, year, department, course')
           .eq('user_id', appt.student_id)
           .single();
 
-        // If no profile, get basic user info
-        if (!studentProfile) {
-          const { data: userData } = await supabase
-            .from('users')
-            .select('email')
-            .eq('id', appt.student_id)
-            .single();
+        // If no profile or to enrich profile, get basic user email from users table
+        const { data: userData } = await supabase
+          .from('users')
+          .select('email')
+          .eq('id', appt.student_id)
+          .single();
 
+        if (studentProfile) {
+          studentProfile.email = userData?.email || '';
+        } else {
           studentProfile = {
             name: userData?.email?.split('@')[0] || 'Unknown Student',
-            email: userData?.email || ''
+            email: userData?.email || '',
+            year: null,
+            department: null,
+            course: null
           };
         }
 
         return {
           ...appt,
-          student: studentProfile ? {
+          student: {
             user_id: appt.student_id,
             name: studentProfile.name,
-            email: studentProfile.email
-          } : null
+            email: studentProfile.email,
+            year: studentProfile.year,
+            department: studentProfile.department,
+            course: studentProfile.course
+          }
         };
       })
     );
@@ -1069,9 +1089,6 @@ router.get('/progress-reports/:id/pdf', verifyToken, async (req, res) => {
 
     console.log('Generating PDF for report:', reportId, 'counsellor:', counsellorId);
 
-    // Get the report. Supabase occasionally returns transient undici fetch
-    // timeouts before the query reaches PostgREST, so retry once before
-    // surfacing a service-unavailable response.
     const { data: report, error } = await runSupabaseQuery(() => supabase
       .from('progress_reports')
       .select('*')
@@ -1093,101 +1110,219 @@ router.get('/progress-reports/:id/pdf', verifyToken, async (req, res) => {
       return res.status(404).json({ error: 'Report not found' });
     }
 
-    // Create PDF
+    // ─── PDF Setup ──────────────────────────────────────────────
     const doc = new PDFDocument({
       size: 'A4',
-      margin: 50
+      margins: { top: 60, bottom: 60, left: 50, right: 50 },
+      info: {
+        Title: 'Weekly Counseling Progress Report',
+        Author: report.counsellor_name || 'Counsellor',
+        Subject: `Progress Report – ${report.student_name}`,
+      }
     });
 
-    // Set response headers
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=progress-report-${report.student_name}-${report.week_start}.pdf`);
-
-    // Pipe PDF to response
+    res.setHeader('Content-Disposition', `attachment; filename=progress-report-${(report.student_name || 'student').replace(/\s+/g, '-')}-${report.week_start}.pdf`);
     doc.pipe(res);
 
-    // Title
-    doc.fontSize(16).font('Helvetica-Bold').text('Weekly Counseling Progress Report – Low CGPA Students', { align: 'center' });
-    doc.moveDown(2);
+    // ─── Constants ───────────────────────────────────────────────
+    const LEFT   = 50;
+    const RIGHT  = 545;
+    const WIDTH  = RIGHT - LEFT;
+    const PRIMARY   = '#1a3a5c';   // dark navy
+    const ACCENT    = '#2ec4b6';   // teal
+    const LIGHT_BG  = '#f0f7ff';   // section bg
+    const GREY_TEXT = '#555555';
+    const RULE_CLR  = '#ccd8e8';
 
-    // Student Info
-    doc.fontSize(12).font('Helvetica');
-    doc.text(`Student Name: ${report.student_name || '__________________________'}`);
-    doc.text(`Register Number: ${report.register_number || '________________________'}`);
-    doc.text(`Department / Year: ${report.department_year || '______________________'}`);
-    doc.text(`Week: ____________ (From ${report.week_start} to ${report.week_end})`);
-    doc.text(`Counselor Name: ${report.counsellor_name || '_________________________'}`);
-    doc.moveDown(2);
+    // ─── Helper: draw a thick section header bar ─────────────────
+    const sectionHeader = (title, yOverride) => {
+      const y = yOverride !== undefined ? yOverride : doc.y;
+      // Ensure we don't overflow page
+      if (y + 28 > doc.page.height - doc.page.margins.bottom) {
+        doc.addPage();
+        return sectionHeader(title, doc.y);
+      }
+      doc.rect(LEFT, y, WIDTH, 22).fill(PRIMARY);
+      doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(10)
+         .text(title, LEFT + 8, y + 6, { width: WIDTH - 16 });
+      doc.fillColor('#000000');
+      doc.y = y + 28;
+      return doc.y;
+    };
 
-    // 1. Academic Performance
-    doc.font('Helvetica-Bold').text('1. Academic Performance');
-    doc.font('Helvetica').moveDown(0.5);
-    
-    const tableTop = doc.y;
-    doc.text('Subject', 50, tableTop);
-    doc.text('Current Score %', 200, tableTop);
-    doc.text('Attendance %', 320, tableTop);
-    doc.text('Remarks', 420, tableTop);
-    
-    doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
-    
-    let yPos = tableTop + 25;
-    if (report.academic_performance && Array.isArray(report.academic_performance)) {
-      report.academic_performance.forEach(subject => {
-        doc.text(subject.subject || '', 50, yPos);
-        doc.text(subject.score || '', 200, yPos);
-        doc.text(subject.attendance || '', 320, yPos);
-        doc.text(subject.remarks || '', 420, yPos);
-        yPos += 20;
+    // ─── Helper: ensure space, add page if needed ────────────────
+    const ensureSpace = (needed) => {
+      if (doc.y + needed > doc.page.height - doc.page.margins.bottom) {
+        doc.addPage();
+      }
+    };
+
+    // ─── Helper: horizontal rule ─────────────────────────────────
+    const hRule = (color = RULE_CLR, thickness = 0.5) => {
+      doc.moveTo(LEFT, doc.y).lineTo(RIGHT, doc.y)
+         .lineWidth(thickness).strokeColor(color).stroke();
+      doc.y += 4;
+    };
+
+    // ─── Helper: draw table row ───────────────────────────────────
+    const tableRow = (cols, y, heights, shade) => {
+      const rowH = Math.max(...heights, 18);
+      if (shade) {
+        doc.rect(LEFT, y, WIDTH, rowH).fill('#f5f9fc');
+        doc.fillColor('#000000');
+      }
+      let x = LEFT;
+      cols.forEach((col, i) => {
+        doc.rect(x, y, col.w, rowH).lineWidth(0.4).strokeColor(RULE_CLR).stroke();
+        doc.fillColor(col.bold ? PRIMARY : '#222222')
+           .font(col.bold ? 'Helvetica-Bold' : 'Helvetica')
+           .fontSize(col.fontSize || 9)
+           .text(col.text || '', x + 5, y + 4, { width: col.w - 10, lineBreak: true });
+        x += col.w;
       });
-    }
-    
-    // Add empty rows
-    for (let i = 0; i < 3; i++) {
-      doc.text('', 50, yPos);
-      doc.text('', 200, yPos);
-      doc.text('', 320, yPos);
-      doc.text('', 420, yPos);
-      yPos += 20;
-    }
-    
-    doc.moveDown(2);
+      return rowH;
+    };
 
-    // 2. Review of Previous Week's Goals
-    doc.font('Helvetica-Bold').text('2. Review of the Previous Week\'s Goals');
-    doc.font('Helvetica').moveDown(0.5);
-    
-    doc.text('Goal', 50, doc.y);
-    doc.text('Status', 250, doc.y);
-    doc.text('Reason for Status', 350, doc.y);
-    
-    doc.moveTo(50, doc.y + 15).lineTo(550, doc.y + 15).stroke();
-    
-    yPos = doc.y + 25;
-    if (report.previous_goals_review && Array.isArray(report.previous_goals_review)) {
-      report.previous_goals_review.forEach(goal => {
-        doc.text(goal.goal || '', 50, yPos, { width: 180 });
-        doc.text(goal.status || '', 250, yPos, { width: 80 });
-        doc.text(goal.reason || '', 350, yPos, { width: 180 });
-        yPos += 30;
+    // ─── PAGE HEADER ─────────────────────────────────────────────
+    // Top accent bar
+    doc.rect(LEFT, 30, WIDTH, 4).fill(ACCENT);
+    doc.y = 44;
+
+    // Institution / Report title
+    doc.fillColor(PRIMARY).font('Helvetica-Bold').fontSize(16)
+       .text('Weekly Counseling Progress Report', LEFT, doc.y, { align: 'center', width: WIDTH });
+    doc.y += 4;
+    doc.fillColor(GREY_TEXT).font('Helvetica').fontSize(10)
+       .text('Student Academic & Wellbeing Monitoring', LEFT, doc.y, { align: 'center', width: WIDTH });
+    doc.y += 6;
+    doc.rect(LEFT, doc.y, WIDTH, 1).fill(ACCENT);
+    doc.y += 10;
+
+    // ─── STUDENT INFORMATION ─────────────────────────────────────
+    sectionHeader('STUDENT INFORMATION');
+
+    // Light bg box
+    const infoBoxY = doc.y;
+    doc.rect(LEFT, infoBoxY, WIDTH, 72).fill(LIGHT_BG).stroke();
+    doc.fillColor('#000000');
+
+    const colWidth = WIDTH / 3;
+    const col1 = LEFT + 8;
+    const col2 = LEFT + colWidth + 8;
+    const col3 = LEFT + 2 * colWidth + 8;
+
+    // Row 1
+    doc.font('Helvetica-Bold').fontSize(8).fillColor(GREY_TEXT)
+       .text('STUDENT NAME', col1, infoBoxY + 8)
+       .text('REGISTER NUMBER', col2, infoBoxY + 8)
+       .text('DEPARTMENT / YEAR', col3, infoBoxY + 8);
+
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(PRIMARY)
+       .text(report.student_name || '—', col1, infoBoxY + 19, { width: colWidth - 16 })
+       .text(report.register_number || '—', col2, infoBoxY + 19, { width: colWidth - 16 })
+       .text(report.department_year || '—', col3, infoBoxY + 19, { width: colWidth - 16 });
+
+    // Row 2
+    doc.font('Helvetica-Bold').fontSize(8).fillColor(GREY_TEXT)
+       .text('WEEK START', col1, infoBoxY + 44)
+       .text('WEEK END', col2, infoBoxY + 44)
+       .text('COUNSELLOR', col3, infoBoxY + 44);
+
+    doc.font('Helvetica').fontSize(10).fillColor('#000000')
+       .text(report.week_start || '—', col1, infoBoxY + 55, { width: colWidth - 16 })
+       .text(report.week_end   || '—', col2, infoBoxY + 55, { width: colWidth - 16 })
+       .text(report.counsellor_name || '—', col3, infoBoxY + 55, { width: colWidth - 16 });
+
+    doc.y = infoBoxY + 80;
+
+    // ─── 1. ACADEMIC PERFORMANCE ──────────────────────────────────
+    ensureSpace(80);
+    sectionHeader('1. ACADEMIC PERFORMANCE');
+
+    const apCols = [
+      { label: 'Subject', w: 165 },
+      { label: 'Score (%)', w: 80 },
+      { label: 'Attendance (%)', w: 90 },
+      { label: 'Remarks', w: 160 },
+    ];
+
+    // Header row
+    let rowY = doc.y;
+    let x = LEFT;
+    apCols.forEach(c => {
+      doc.rect(x, rowY, c.w, 20).fill(ACCENT).stroke();
+      doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(9)
+         .text(c.label, x + 5, rowY + 5, { width: c.w - 10 });
+      x += c.w;
+    });
+    doc.fillColor('#000000');
+    rowY += 20;
+
+    const apData = Array.isArray(report.academic_performance) ? report.academic_performance : [];
+    const apRows = apData.length > 0 ? apData : [{ subject: '', score: '', attendance: '', remarks: '' }];
+
+    apRows.forEach((sub, i) => {
+      ensureSpace(22);
+      const heights = apCols.map((c, ci) => {
+        const texts = [sub.subject || '', sub.score || '', sub.attendance || '', sub.remarks || ''];
+        return doc.heightOfString(texts[ci] || '', { width: c.w - 10, fontSize: 9 }) + 10;
       });
-    }
-    
-    // Add empty rows
-    for (let i = 0; i < 3; i++) {
-      doc.text('', 50, yPos, { width: 180 });
-      doc.text('', 250, yPos, { width: 80 });
-      doc.text('', 350, yPos, { width: 180 });
-      yPos += 30;
-    }
-    
-    doc.moveDown(2);
+      const rH = tableRow([
+        { text: sub.subject || '', w: 165 },
+        { text: sub.score ? `${sub.score}%` : '', w: 80 },
+        { text: sub.attendance ? `${sub.attendance}%` : '', w: 90 },
+        { text: sub.remarks || '', w: 160 },
+      ], rowY, heights, i % 2 === 0);
+      rowY += rH;
+    });
+    doc.y = rowY + 6;
 
-    // 3. Issues / Challenges
-    doc.font('Helvetica-Bold').text('3. Issues / Challenges Faced This Week');
-    doc.font('Helvetica').moveDown(0.5);
-    
-    const issues = report.issues_challenges || [];
+    // ─── 2. REVIEW OF PREVIOUS WEEK'S GOALS ───────────────────────
+    ensureSpace(80);
+    sectionHeader("2. REVIEW OF THE PREVIOUS WEEK'S GOALS");
+
+    const goalCols = [
+      { label: 'Goal / Target', w: 195 },
+      { label: 'Status', w: 90 },
+      { label: 'Reason / Notes', w: 210 },
+    ];
+
+    rowY = doc.y;
+    x = LEFT;
+    goalCols.forEach(c => {
+      doc.rect(x, rowY, c.w, 20).fill(ACCENT).stroke();
+      doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(9)
+         .text(c.label, x + 5, rowY + 5, { width: c.w - 10 });
+      x += c.w;
+    });
+    doc.fillColor('#000000');
+    rowY += 20;
+
+    const goalData = Array.isArray(report.previous_goals_review) ? report.previous_goals_review : [];
+    const goalRows = goalData.length > 0 ? goalData : [{ goal: '', status: '', reason: '' }];
+
+    goalRows.forEach((g, i) => {
+      ensureSpace(26);
+      const heights = [
+        doc.heightOfString(g.goal || '', { width: 185, fontSize: 9 }) + 10,
+        doc.heightOfString(g.status || '', { width: 80, fontSize: 9 }) + 10,
+        doc.heightOfString(g.reason || '', { width: 200, fontSize: 9 }) + 10,
+      ];
+      const rH = tableRow([
+        { text: g.goal || '', w: 195 },
+        { text: g.status || '', w: 90 },
+        { text: g.reason || '', w: 210 },
+      ], rowY, heights, i % 2 === 0);
+      rowY += rH;
+    });
+    doc.y = rowY + 6;
+
+    // ─── 3. ISSUES / CHALLENGES ───────────────────────────────────
+    ensureSpace(120);
+    sectionHeader('3. ISSUES / CHALLENGES FACED THIS WEEK');
+
+    const issues = Array.isArray(report.issues_challenges) ? report.issues_challenges : [];
     const issueOptions = [
       'Lack of conceptual clarity in subjects',
       'Poor time management',
@@ -1197,88 +1332,196 @@ router.get('/progress-reports/:id/pdf', verifyToken, async (req, res) => {
       'Personal / family issues',
       'Health issues'
     ];
-    
-    issueOptions.forEach(issue => {
-      const checked = issues.includes(issue) ? '☑' : '☐';
-      doc.text(`${checked} ${issue}`);
-    });
-    
-    doc.text(`Other: ${report.other_issues || '____________________________________________'}`);
-    doc.moveDown(2);
 
-    // 4. Counseling & Support Provided
-    doc.font('Helvetica-Bold').text('4. Counseling & Support Provided');
-    doc.font('Helvetica').moveDown(0.5);
-    
+    // Two-column layout for issues
+    const issLeft  = issueOptions.filter((_, i) => i % 2 === 0);
+    const issRight = issueOptions.filter((_, i) => i % 2 === 1);
+    const maxRows  = Math.max(issLeft.length, issRight.length);
+    const issBoxY  = doc.y;
+
+    doc.rect(LEFT, issBoxY, WIDTH, maxRows * 18 + 12).fill(LIGHT_BG);
+    doc.fillColor('#000000');
+
+    for (let r = 0; r < maxRows; r++) {
+      const y = issBoxY + 6 + r * 18;
+      const lIss = issLeft[r];
+      const rIss = issRight[r];
+      if (lIss) {
+        const checked = issues.includes(lIss);
+        doc.rect(LEFT + 8, y + 2, 10, 10)
+           .lineWidth(0.8).strokeColor(PRIMARY).stroke();
+        if (checked) {
+          doc.fillColor(ACCENT)
+             .font('Helvetica-Bold').fontSize(10)
+             .text('✓', LEFT + 9, y + 1);
+          doc.fillColor('#000000');
+        }
+        doc.font(checked ? 'Helvetica-Bold' : 'Helvetica')
+           .fontSize(9).fillColor(checked ? PRIMARY : '#444444')
+           .text(lIss, LEFT + 24, y + 2, { width: 230 });
+      }
+      if (rIss) {
+        const checked = issues.includes(rIss);
+        doc.rect(LEFT + 8 + 270, y + 2, 10, 10)
+           .lineWidth(0.8).strokeColor(PRIMARY).stroke();
+        if (checked) {
+          doc.fillColor(ACCENT)
+             .font('Helvetica-Bold').fontSize(10)
+             .text('✓', LEFT + 8 + 271, y + 1);
+          doc.fillColor('#000000');
+        }
+        doc.font(checked ? 'Helvetica-Bold' : 'Helvetica')
+           .fontSize(9).fillColor(checked ? PRIMARY : '#444444')
+           .text(rIss, LEFT + 24 + 270, y + 2, { width: 240 });
+      }
+    }
+    doc.y = issBoxY + maxRows * 18 + 16;
+
+    if (report.other_issues) {
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(GREY_TEXT).text('Other Issues:', LEFT, doc.y);
+      doc.font('Helvetica').fontSize(9).fillColor('#000000')
+         .text(report.other_issues, LEFT + 72, doc.y - 11, { width: WIDTH - 72 });
+    }
+    doc.y += 8;
+
+    // ─── 4. COUNSELING & SUPPORT PROVIDED ────────────────────────
+    ensureSpace(100);
+    sectionHeader('4. COUNSELING & SUPPORT PROVIDED');
+
     const support = report.counseling_support || {};
-    doc.text(`• Academic guidance: ${support.academic_guidance || '_________________________________'}`);
-    doc.text(`• Study strategy suggestions: ${support.study_strategy || '_________________________'}`);
-    doc.text(`• Motivational support: ${support.motivational_support || '_______________________________'}`);
-    doc.text(`• Peer study group / mentorship arrangement: ${support.peer_study || '__________'}`);
-    doc.text(`• Parent communication (if needed): ${support.parent_communication || '___________________'}`);
-    doc.moveDown(2);
+    const supportItems = [
+      { label: 'Academic Guidance', value: support.academic_guidance },
+      { label: 'Study Strategy Suggestions', value: support.study_strategy },
+      { label: 'Motivational Support', value: support.motivational_support },
+      { label: 'Peer Study Group / Mentorship', value: support.peer_study },
+      { label: 'Parent Communication', value: support.parent_communication },
+    ];
 
-    // 5. Plan & Targets for Next Week
-    doc.font('Helvetica-Bold').text('5. Plan & Targets for Next Week');
-    doc.font('Helvetica').moveDown(0.5);
-    
-    doc.text('Goal', 50, doc.y);
-    doc.text('Steps to Achieve', 200, doc.y);
-    doc.text('Responsible Person', 350, doc.y);
-    
-    doc.moveTo(50, doc.y + 15).lineTo(550, doc.y + 15).stroke();
-    
-    yPos = doc.y + 25;
-    if (report.next_week_plan && Array.isArray(report.next_week_plan)) {
-      report.next_week_plan.forEach(plan => {
-        doc.text(plan.goal || '', 50, yPos, { width: 130 });
-        doc.text(plan.steps || '', 200, yPos, { width: 130 });
-        doc.text(plan.responsible || '', 350, yPos, { width: 130 });
-        yPos += 30;
-      });
-    }
-    
-    // Add empty rows
-    for (let i = 0; i < 3; i++) {
-      doc.text('', 50, yPos, { width: 130 });
-      doc.text('', 200, yPos, { width: 130 });
-      doc.text('', 350, yPos, { width: 130 });
-      yPos += 30;
-    }
-    
-    doc.moveDown(2);
+    supportItems.forEach((item, i) => {
+      ensureSpace(24);
+      const y = doc.y;
+      if (i % 2 === 0) doc.rect(LEFT, y, WIDTH, 22).fill(LIGHT_BG);
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(GREY_TEXT)
+         .text(`• ${item.label}:`, LEFT + 8, y + 6, { continued: true })
+         .font('Helvetica').fillColor('#111111')
+         .text(`  ${item.value || '—'}`, { width: WIDTH - 90 });
+      doc.y = y + 22;
+    });
+    doc.y += 6;
 
-    // 6. Counselor's Remarks
-    doc.font('Helvetica-Bold').text('6. Counselor\'s Remarks');
-    doc.font('Helvetica').moveDown(0.5);
-    
+    // ─── 5. PLAN & TARGETS FOR NEXT WEEK ─────────────────────────
+    ensureSpace(80);
+    sectionHeader('5. PLAN & TARGETS FOR NEXT WEEK');
+
+    const planCols = [
+      { label: 'Goal / Target', w: 165 },
+      { label: 'Steps to Achieve', w: 180 },
+      { label: 'Responsible', w: 150 },
+    ];
+
+    rowY = doc.y;
+    x = LEFT;
+    planCols.forEach(c => {
+      doc.rect(x, rowY, c.w, 20).fill(ACCENT).stroke();
+      doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(9)
+         .text(c.label, x + 5, rowY + 5, { width: c.w - 10 });
+      x += c.w;
+    });
+    doc.fillColor('#000000');
+    rowY += 20;
+
+    const planData = Array.isArray(report.next_week_plan) ? report.next_week_plan : [];
+    const planRows = planData.length > 0 ? planData : [{ goal: '', steps: '', responsible: '' }];
+
+    planRows.forEach((plan, i) => {
+      ensureSpace(26);
+      const heights = [
+        doc.heightOfString(plan.goal || '', { width: 155, fontSize: 9 }) + 10,
+        doc.heightOfString(plan.steps || '', { width: 170, fontSize: 9 }) + 10,
+        doc.heightOfString(plan.responsible || '', { width: 140, fontSize: 9 }) + 10,
+      ];
+      const rH = tableRow([
+        { text: plan.goal || '', w: 165 },
+        { text: plan.steps || '', w: 180 },
+        { text: plan.responsible || '', w: 150 },
+      ], rowY, heights, i % 2 === 0);
+      rowY += rH;
+    });
+    doc.y = rowY + 6;
+
+    // ─── 6. COUNSELLOR'S REMARKS ──────────────────────────────────
+    ensureSpace(80);
+    sectionHeader("6. COUNSELLOR'S REMARKS & OBSERVATIONS");
+
     const remarks = report.counsellor_remarks || '';
-    const remarkLines = doc.heightOfString(remarks, { width: 500 }) / 12;
-    doc.text(remarks, { width: 500 });
-    
-    // Add empty lines for remarks
-    for (let i = 0; i < Math.max(0, 8 - Math.ceil(remarkLines)); i++) {
-      doc.text('');
+    const remarksH = Math.max(doc.heightOfString(remarks || ' ', { width: WIDTH - 16, fontSize: 10 }) + 20, 60);
+    ensureSpace(remarksH + 10);
+    doc.rect(LEFT, doc.y, WIDTH, remarksH).fill(LIGHT_BG).lineWidth(0.5).strokeColor(RULE_CLR).stroke();
+    doc.fillColor('#000000').font('Helvetica').fontSize(10)
+       .text(remarks || 'No remarks recorded.', LEFT + 8, doc.y + 8, { width: WIDTH - 16 });
+    doc.y += remarksH + 8;
+
+    // ─── 7. STUDENT'S COMMITMENT ──────────────────────────────────
+    ensureSpace(80);
+    sectionHeader("7. STUDENT'S COMMITMENT");
+
+    const commitY = doc.y;
+    doc.rect(LEFT, commitY, WIDTH, 60).fill(LIGHT_BG).stroke();
+
+    const commitChecked = report.student_commitment;
+    doc.rect(LEFT + 10, commitY + 10, 14, 14).lineWidth(1).strokeColor(PRIMARY).stroke();
+    if (commitChecked) {
+      doc.fillColor(ACCENT).font('Helvetica-Bold').fontSize(13)
+         .text('✓', LEFT + 12, commitY + 9);
     }
-    
-    doc.moveDown(2);
+    doc.fillColor('#000000').font('Helvetica').fontSize(9)
+       .text('"I will follow the agreed plan and take responsibility for my learning."',
+             LEFT + 30, commitY + 12, { width: WIDTH - 40 });
 
-    // 7. Student's Commitment
-    doc.font('Helvetica-Bold').text('7. Student\'s Commitment');
-    doc.font('Helvetica').moveDown(0.5);
-    
-    const commitment = report.student_commitment ? '☑' : '☐';
-    doc.text(`${commitment} "I will follow the agreed plan and take responsibility for my learning."`);
-    doc.text(`Signature of Student: ${report.student_signature || '_______________'} Date: ${report.student_signature_date || '___ / ___ / 20__'}`);
-    doc.moveDown(2);
+    // Signature row
+    doc.font('Helvetica-Bold').fontSize(8).fillColor(GREY_TEXT)
+       .text('STUDENT SIGNATURE', LEFT + 10, commitY + 36)
+       .text('DATE', LEFT + 300, commitY + 36);
+    doc.font('Helvetica').fontSize(9).fillColor('#000000')
+       .text(report.student_signature || '________________________', LEFT + 10, commitY + 46)
+       .text(report.student_signature_date || '________________', LEFT + 300, commitY + 46);
 
-    // 8. Counselor's Signature
-    doc.font('Helvetica-Bold').text('8. Counselor\'s Signature');
-    doc.font('Helvetica').moveDown(0.5);
-    
-    doc.text(`Name & Signature: ${report.counsellor_signature || '______________________'} Date: ${report.counsellor_signature_date || '___ / ___ / 20__'}`);
+    doc.y = commitY + 68;
 
-    // Finalize PDF
+    // ─── 8. COUNSELLOR'S SIGNATURE ────────────────────────────────
+    ensureSpace(70);
+    sectionHeader("8. COUNSELLOR'S SIGNATURE & CERTIFICATION");
+
+    const sigY = doc.y;
+    doc.rect(LEFT, sigY, WIDTH, 55).fill(LIGHT_BG).stroke();
+
+    doc.font('Helvetica').fontSize(9).fillColor(GREY_TEXT)
+       .text('I certify that this report is an accurate record of the counselling provided.', LEFT + 10, sigY + 8, { width: WIDTH - 20 });
+
+    doc.font('Helvetica-Bold').fontSize(8).fillColor(GREY_TEXT)
+       .text('COUNSELLOR NAME & SIGNATURE', LEFT + 10, sigY + 28)
+       .text('DATE', LEFT + 340, sigY + 28);
+    doc.font('Helvetica').fontSize(9).fillColor('#000000')
+       .text(report.counsellor_signature || '________________________', LEFT + 10, sigY + 39)
+       .text(report.counsellor_signature_date || '________________', LEFT + 340, sigY + 39);
+
+    doc.y = sigY + 63;
+
+    // ─── FOOTER on each page ──────────────────────────────────────
+    const totalPages = doc.bufferedPageRange ? doc.bufferedPageRange().count : 1;
+    for (let i = 0; i < doc._pageBuffer?.length || 0; i++) {
+      // pdfkit doesn't easily support page numbers mid-stream; add bottom bar
+    }
+
+    // Bottom accent bar on last page
+    const bottomY = doc.page.height - 45;
+    doc.rect(LEFT, bottomY, WIDTH, 2).fill(ACCENT);
+    doc.fillColor(GREY_TEXT).font('Helvetica').fontSize(8)
+       .text(
+         `Generated: ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}   |   Confidential — For Counselling Use Only`,
+         LEFT, bottomY + 6, { align: 'center', width: WIDTH }
+       );
+
     doc.end();
 
   } catch (error) {

@@ -20,6 +20,9 @@ import {
   FiTrendingDown,
   FiUser,
   FiX,
+  FiMail,
+  FiPhone,
+  FiCheckSquare,
 } from 'react-icons/fi';
 import './Dashboard.css';
 import CancelSessionModal from '../components/CancelSessionModal';
@@ -369,6 +372,16 @@ const CounsellorDashboard = () => {
     }
   };
 
+  const resolveAlert = async (alertId) => {
+    try {
+      await api.patch(`/admin/live-alerts/${alertId}/resolve`);
+      setLiveAlerts(prev => prev.filter(a => a.id !== alertId));
+    } catch (err) {
+      console.error('Resolve alert error:', err);
+      alert('Failed to resolve this alert. The database may need a schema update (add resolved column to crisis_alerts).');
+    }
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -468,7 +481,7 @@ const CounsellorDashboard = () => {
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                           <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>
-                            {alert.student_id ? 'Authenticated Student' : 'Anonymous Student'}
+                            {alert.student_name || alert.student_profiles?.name || (alert.student_id ? 'Authenticated Student' : 'Anonymous Student')}
                           </span>
                           {alert.severity === 'HIGH' && <TagBadge tag="urgent" />}
                         </div>
@@ -477,12 +490,62 @@ const CounsellorDashboard = () => {
                           {new Date(alert.created_at).toLocaleString()}
                         </p>
                       </div>
-                      <button 
-                        onClick={() => navigate(alert.session_id ? `/session/${alert.session_id}` : '#')}
-                        disabled={!alert.session_id}
-                        style={{ padding: '6px 10px', fontSize: '0.75rem', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: alert.session_id ? 'pointer' : 'not-allowed', opacity: alert.session_id ? 1 : 0.5 }}>
-                        View transcript
-                      </button>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        {alert.student_email && (
+                          <a
+                            href={`mailto:${alert.student_email}`}
+                            title={`Email ${alert.student_name || 'Student'}`}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                              width: '28px', height: '28px', background: '#fff',
+                              border: '1px solid #cbd5e1', borderRadius: '6px',
+                              color: '#ef4444', cursor: 'pointer', transition: 'all 0.2s', textDecoration: 'none'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.borderColor = '#fca5a5'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+                          >
+                            <FiMail size={14} />
+                          </a>
+                        )}
+                        {alert.student_phone && (
+                          <a
+                            href={`tel:${alert.student_phone}`}
+                            title={`Call ${alert.student_name || 'Student'}`}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                              width: '28px', height: '28px', background: '#fff',
+                              border: '1px solid #cbd5e1', borderRadius: '6px',
+                              color: '#ef4444', cursor: 'pointer', transition: 'all 0.2s', textDecoration: 'none'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.borderColor = '#fca5a5'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+                          >
+                            <FiPhone size={14} />
+                          </a>
+                        )}
+                        {alert.student_id && (
+                          <button
+                            onClick={() => navigate(`/counsellor/student/${alert.student_id}`)}
+                            title="View student profile & session history"
+                            style={{ padding: '6px 10px', fontSize: '0.75rem', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer' }}>
+                            View Profile
+                          </button>
+                        )}
+                        <button
+                          onClick={() => resolveAlert(alert.id)}
+                          title="Mark this crisis alert as resolved"
+                          style={{
+                            padding: '6px 10px', fontSize: '0.75rem', fontWeight: 600,
+                            background: '#f0fdf4', border: '1px solid #86efac',
+                            borderRadius: '6px', color: '#15803d', cursor: 'pointer',
+                            display: 'inline-flex', alignItems: 'center', gap: '4px'
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = '#dcfce7'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = '#f0fdf4'; }}
+                        >
+                          <FiCheckSquare size={13} /> Resolve
+                        </button>
+                      </div>
                     </motion.div>
                   )) : (
                     <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8' }}>

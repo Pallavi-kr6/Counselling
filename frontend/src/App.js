@@ -30,6 +30,7 @@ import Navbar from './components/Navbar';
 import ReminderBanner from './components/ReminderBanner';
 import StudentEchoes from './pages/StudentEchoes';
 import VoiceRipple from './pages/VoiceRipple';
+import ResolvedCases from './pages/ResolvedCases';
 import './App.css';
 
 const PageWrapper = ({ children }) => (
@@ -244,6 +245,15 @@ function AnimatedRoutes() {
               <Navbar />
               <PageWrapper><VoiceRipple /></PageWrapper>
             </StudentOnlyRoute>
+          }
+        />
+        <Route
+          path="/resolved-cases"
+          element={
+            <CounsellorOnlyRoute>
+              <Navbar />
+              <PageWrapper><ResolvedCases /></PageWrapper>
+            </CounsellorOnlyRoute>
           }
         />
       </Routes>
