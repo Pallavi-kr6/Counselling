@@ -227,7 +227,7 @@ const Login = () => {
                       e.currentTarget.style.borderColor = 'rgba(20, 184, 166, 0.2)';
                     }}
                   >
-                    Use Trial ID: <strong>TRIAL001</strong>
+                 
                   </button>
                 </div>
               </form>
