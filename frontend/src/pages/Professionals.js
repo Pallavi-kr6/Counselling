@@ -57,13 +57,13 @@ const allProfessionals = [
   },
   {
     id: 6,
-    name: 'Dr. Lakshmi Narayanan K',
+    name: 'Dr. R. Lakshminarayanan',
     role: 'Associate Professor',
     image: '/counsellors/lakshmi.png',
     specialty: 'Networking & Comm (NWC)',
-    experience: '11 Years',
+    experience: '14 Years',
     location: 'S617, UB',
-    profileUrl: 'https://www.srmist.edu.in/faculty/dr-lakshmi-narayanan-k/'
+    profileUrl: 'https://www.srmist.edu.in/faculty/dr-r-lakshminarayanan/'
   }
 ];
 

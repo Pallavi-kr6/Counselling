@@ -768,7 +768,7 @@ BEGIN
       ('supraja@college.edu', 'Dr. P.Supraja', 'Associate Professor', 'SUP001', 'Value Education Cell', 'VEC-101', '9876543213'),
       ('arun@college.edu', 'Dr. A Arun', 'Associate Professor', 'ARU001', 'Networking & Comm (NWC)', 'NWC-103', '9876543214'),
       ('vaishnavi@college.edu', 'Dr. M.Vaishnavi Moorthy', 'Associate Professor', 'VAI001', 'Networking & Comm (NWC)', 'NWC-104', '9876543215'),
-      ('lakshmi@college.edu', 'Dr. Lakshmi Narayanan K', 'Associate Professor', 'LAK001', 'Networking & Comm (NWC)', 'NWC-105', '9876543216')
+      ('lakshmi@college.edu', 'Dr. R. Lakshminarayanan', 'Associate Professor', 'LAK001', 'Networking & Comm (NWC)', 'NWC-105', '9876543216')
     ) AS x(email, name, designation, teacher_id, department, room_no, phone_no)
   LOOP
     INSERT INTO public.users (email, user_type, is_anonymous)
