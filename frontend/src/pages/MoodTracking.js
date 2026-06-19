@@ -54,12 +54,14 @@ const MoodTracking = () => {
   useEffect(() => {
     fetchMoodHistory();
     fetchDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (history.length > 0 && !gentleInsight) {
       loadGentleInsight();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [history]);
 
   const loadGentleInsight = async () => {

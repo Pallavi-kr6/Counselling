@@ -9,11 +9,9 @@ import {
   FiCheckCircle, 
   FiActivity,
   FiClock,
-  FiClipboard,
   FiExternalLink,
   FiSettings,
   FiPower,
-  FiAlertTriangle,
   FiAlertOctagon,
   FiEye,
   FiCheck,
@@ -52,6 +50,7 @@ function TagBadge({ tag }) {
 }
 
 // ── Watch flag card ───────────────────────────────────────────
+// eslint-disable-next-line no-unused-vars
 function WatchFlagCard({ flag, onAcknowledge, onResolve }) {
   const [busy, setBusy] = useState(false);
 
@@ -208,7 +207,9 @@ const CounsellorDashboard = () => {
 
   // Watch flags state
   const [watchFlags, setWatchFlags] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [watchLoading, setWatchLoading] = useState(true);
+  // eslint-disable-next-line no-unused-vars
   const [showResolved, setShowResolved] = useState(false);
 
   // Live Alerts state (Real-time Supabase)
@@ -357,6 +358,7 @@ const CounsellorDashboard = () => {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const acknowledgeFlag = async (flagId) => {
     try {
       await api.patch(`/admin/watch-flags/${flagId}`, { acknowledged: true });
@@ -366,6 +368,7 @@ const CounsellorDashboard = () => {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const resolveFlag = async (flagId) => {
     try {
       await api.patch(`/admin/watch-flags/${flagId}`, { resolved: true });
@@ -404,7 +407,9 @@ const CounsellorDashboard = () => {
     visible: { y: 0, opacity: 1 }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const urgentCount = watchFlags.filter(f => f.tag === 'urgent').length;
+  // eslint-disable-next-line no-unused-vars
   const watchCount  = watchFlags.filter(f => f.tag === 'watch').length;
 
   if (loading) return <div className="loading-screen">Opening your professional space...</div>;
