@@ -37,6 +37,7 @@ const Signup = () => {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [step, setStep] = useState(1); // 1 = form, 2 = OTP verification
+  const [showSpamWarning, setShowSpamWarning] = useState(false);
 
   const handleSendOTP = async (e) => {
     e.preventDefault();
@@ -56,6 +57,7 @@ const Signup = () => {
 
       if (response.data.success) {
         setStep(2);
+        setShowSpamWarning(true);
       }
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to send OTP. Please try again.');
@@ -285,6 +287,27 @@ const Signup = () => {
                 />
               </div>
 
+              {/* Spam notice box */}
+              <div 
+                className="spam-notice-box" 
+                style={{
+                  background: 'rgba(46, 196, 182, 0.1)',
+                  border: '1px solid rgba(46, 196, 182, 0.2)',
+                  borderRadius: '12px',
+                  padding: '0.75rem 1rem',
+                  fontSize: '0.9rem',
+                  color: '#2ec4b6',
+                  textAlign: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  marginBottom: '1.25rem'
+                }}
+              >
+                <span>Please check your spam folder for the OTP.</span>
+              </div>
+
               <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
                 {loading ? 'Verifying...' : 'Verify Account'} <FiArrowRight />
               </button>
@@ -297,6 +320,92 @@ const Signup = () => {
           )}
         </AnimatePresence>
       </motion.div>
+
+      {/* OTP Spam Warning Modal */}
+      <AnimatePresence>
+        {showSpamWarning && (
+          <motion.div 
+            className="otp-warning-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.65)',
+              backdropFilter: 'blur(8px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '1.5rem'
+            }}
+          >
+            <motion.div 
+              className="otp-warning-modal glass-card"
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              style={{
+                maxWidth: '420px',
+                width: '100%',
+                background: 'rgba(30, 41, 59, 0.85)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: '24px',
+                padding: '2.5rem',
+                textAlign: 'center',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                backdropFilter: 'blur(20px)'
+              }}
+            >
+              <div 
+                style={{
+                  width: '64px',
+                  height: '64px',
+                  background: 'rgba(46, 196, 182, 0.15)',
+                  color: 'rgb(46, 196, 182)',
+                  borderRadius: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '2rem',
+                  margin: '0 auto 1.5rem',
+                  boxShadow: '0 0 20px rgba(46, 196, 182, 0.2)'
+                }}
+              >
+                <FiMail />
+              </div>
+              <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fff', marginBottom: '0.75rem', fontFamily: "'Poppins', sans-serif" }}>Verify Your Email</h3>
+              <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
+                Please check your spam section for the OTP code.
+              </p>
+              <button 
+                onClick={() => setShowSpamWarning(false)}
+                className="btn btn-primary"
+                style={{
+                  width: '100%',
+                  padding: '0.85rem',
+                  borderRadius: '12px',
+                  fontWeight: 600,
+                  fontSize: '1rem',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #2ec4b6 0%, #0d9488 100%)',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  boxShadow: '0 10px 15px -3px rgba(46, 196, 182, 0.3)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Got it
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
