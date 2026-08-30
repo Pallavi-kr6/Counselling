@@ -2246,7 +2246,7 @@ router.get('/pre-session-brief/student/:studentId', verifyToken, async (req, res
     }
 
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-    const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama3-8b-8192', 'llama3-70b-8192', 'mixtral-8x7b-32768'];
+    const GROQ_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'llama-3.3-70b-versatile', 'llama3-8b-8192'];
 
     const prompt = `Summarize the student's main concerns, emotional state, and any recurring themes from these messages in EXACTLY 3 sentences for a counselor preparing for a session. Be clinical and neutral in tone.\n\n${contextText}`;
 

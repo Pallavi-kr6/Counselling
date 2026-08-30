@@ -260,33 +260,38 @@ const CounsellorDashboard = () => {
 
   // Live Alerts Subscription
   useEffect(() => {
-    // Initial fetch
-    api.get('/admin/live-alerts')
-      .then(res => {
-        const active = (res.data.alerts || []).filter(a => !a.resolved);
-        setLiveAlerts(active);
-      })
-      .catch(err => console.error('Live alerts initial fetch error:', err));
+    // Helper: re-fetch all active alerts from the enriched API endpoint
+    const refreshAlerts = () => {
+      api.get('/admin/live-alerts')
+        .then(res => {
+          const active = (res.data.alerts || []).filter(a => !a.resolved);
+          setLiveAlerts(active);
+        })
+        .catch(err => console.error('Live alerts refresh error:', err));
+    };
 
-    // Real-time subscription (Supabase)
+    // Initial fetch
+    refreshAlerts();
+
+    // Real-time subscription (Supabase) — on any change, re-fetch enriched list
     const channel = supabase
       .channel('crisis-alerts-feed')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'crisis_alerts' }, payload => {
-        setLiveAlerts(prev => {
-          if (prev.some(a => a.id === payload.new.id)) return prev;
-          return [payload.new, ...prev];
-        });
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'crisis_alerts' }, () => {
+        // Re-fetch so student_name / email / phone are populated (raw row has no join)
+        refreshAlerts();
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'crisis_alerts' }, payload => {
         if (payload.new.resolved) {
           setLiveAlerts(prev => prev.filter(a => a.id !== payload.new.id));
         } else {
-          setLiveAlerts(prev => prev.map(a => a.id === payload.new.id ? payload.new : a));
+          // Re-fetch to get enriched data on any update
+          refreshAlerts();
         }
       })
       .subscribe();
 
     // Real-time Socket.io subscription fallback
+    // (already includes student_name from crisisService.js broadcast)
     if (socket) {
       socket.on('live_crisis_alert', (newAlert) => {
         console.log('[Socket] Received live_crisis_alert:', newAlert);

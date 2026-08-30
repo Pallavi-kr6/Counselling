@@ -225,7 +225,7 @@ Message:
 """
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-20b",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.75,
         frequency_penalty=0.6
@@ -318,7 +318,7 @@ Detected emotion/intent: {emotion_data}
     messages.append({"role": "system", "content": f"[Context reminder] {grounding_text[:800]}"})
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         messages=messages,
         temperature=0.75,
         frequency_penalty=0.6

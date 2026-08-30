@@ -80,7 +80,7 @@ async function analyzeAndLogSentiment(userId, sessionId, userMessage) {
     
     // Request raw JSON from Groq
     const completion = await groq.chat.completions.create({
-      model: 'llama3-8b-8192', // using smaller, faster model
+      model: 'openai/gpt-oss-20b', // fast model
       response_format: { type: 'json_object' },
       messages: [
         { 

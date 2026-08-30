@@ -34,7 +34,8 @@ const BookAppointment = () => {
     }
   };
 
-  const fetchAvailableSlots = useCallback(async () => {
+  const fetchAvailableSlots = useCallback(async (dateToFetch) => {
+    const date = dateToFetch || selectedDate;
     if (!selectedCounsellor) return;
 
     if (selectedCounsellor.isAvailable === false) {
@@ -44,7 +45,7 @@ const BookAppointment = () => {
     }
 
     try {
-      const dateStr = selectedDate.toISOString().split('T')[0];
+      const dateStr = date.toISOString().split('T')[0];
       const { data } = await api.get(`/appointments/slots/${selectedCounsellor.user_id}?date=${dateStr}`);
       setAvailableSlots(data.slots || []);
       if (data.slots && data.slots.length > 0) {
@@ -60,9 +61,16 @@ const BookAppointment = () => {
   useEffect(() => {
     if (selectedCounsellor && selectedDate) {
       setSelectedSlot(null);
-      fetchAvailableSlots();
+      fetchAvailableSlots(selectedDate);
     }
   }, [selectedCounsellor, selectedDate, fetchAvailableSlots]);
+
+  const handleDateChange = (newDate) => {
+    setSelectedDate(newDate);
+    setSelectedSlot(null);
+    fetchAvailableSlots(newDate);
+  };
+
 
   const handleCounsellorSelect = (counsellor) => {
     if (counsellor.isAvailable === false) {
@@ -193,7 +201,7 @@ const BookAppointment = () => {
                   <div style={{ flex: '1 1 300px' }}>
                     <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.7)', borderRadius: '1rem', border: '1px solid rgba(46, 186, 168, 0.2)' }}>
                       <Calendar
-                        onChange={setSelectedDate}
+                        onChange={handleDateChange}
                         value={selectedDate}
                         minDate={new Date()}
                         tileDisabled={({ date }) => date < new Date() || date.getDay() === 0} // Just a visual example, but let backend validate

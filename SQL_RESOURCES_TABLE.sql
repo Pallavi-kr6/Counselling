@@ -8,12 +8,25 @@
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 1. Add new columns (safe — does nothing if they already exist)
+-- 1. Create table if not exists, then ensure all columns exist
+CREATE TABLE IF NOT EXISTS resources (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title        TEXT NOT NULL,
+  description  TEXT,
+  category     TEXT NOT NULL,
+  content_url  TEXT,
+  url          TEXT,
+  type         TEXT NOT NULL,
+  is_active    BOOLEAN DEFAULT TRUE,
+  created_at   TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at   TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 ALTER TABLE IF EXISTS resources ADD COLUMN IF NOT EXISTS content_url  TEXT;
 ALTER TABLE IF EXISTS resources ADD COLUMN IF NOT EXISTS is_active    BOOLEAN DEFAULT TRUE;
 ALTER TABLE IF EXISTS resources ADD COLUMN IF NOT EXISTS updated_at   TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 
--- Populate content_url from the legacy `url` column
+-- Populate content_url from the legacy `url` column if null
 UPDATE resources SET content_url = url WHERE content_url IS NULL AND url IS NOT NULL;
 
 -- 2. Enable RLS and add a policy so authenticated users can read active resources
@@ -61,11 +74,11 @@ VALUES
   -- ── STRESS ──────────────────────────────────────────────────
   (
     uuid_generate_v4(),
-    'Managing Academic Stress – Dartmouth Wellness',
+    'Managing Academic Stress – Student Wellbeing Guide',
     'Evidence-based, practical steps to handle workload pressure without overwhelming yourself.',
     'stress',
-    'https://students.dartmouth.edu/wellness-center/wellness-mindfulness/relaxation-downloads/managing-academic-stress',
-    'https://students.dartmouth.edu/wellness-center/wellness-mindfulness/relaxation-downloads/managing-academic-stress',
+    'https://psychcentral.com/stress/stress-management-strategies-for-students',
+    'https://psychcentral.com/stress/stress-management-strategies-for-students',
     'article', TRUE, NOW()
   ),
   (
@@ -120,13 +133,13 @@ VALUES
     'Progressive Muscle Relaxation',
     'Systematically tense and release muscle groups to release anxiety stored in your body.',
     'anxiety',
-    'https://www.anxietycanada.com/articles/how-to-do-progressive-muscle-relaxation/',
-    'https://www.anxietycanada.com/articles/how-to-do-progressive-muscle-relaxation/',
+    'https://www.mindtools.com/article/how-to-use-progressive-muscle-relaxation/',
+    'https://www.mindtools.com/article/how-to-use-progressive-muscle-relaxation/',
     'exercise', TRUE, NOW()
   ),
   (
     uuid_generate_v4(),
-    'Understanding Anxiety: What's Happening in Your Body',
+    'Understanding Anxiety: What''s Happening in Your Body',
     'A clear, compassionate explanation of the anxiety response and how to work with it, not against it.',
     'anxiety',
     'https://www.mind.org.uk/information-support/types-of-mental-health-problems/anxiety-and-panic-attacks/about-anxiety/',
@@ -213,6 +226,28 @@ VALUES
 ON CONFLICT DO NOTHING;
 
 -- ─────────────────────────────────────────────────────────────
+-- Fix dead / closed resource URLs (safe to re-run):
+-- 1. Anxiety Canada shut down permanently (anxietycanada.com)
+-- 2. Dartmouth Wellness Center link returns 404
+-- ─────────────────────────────────────────────────────────────
+UPDATE resources
+SET
+  content_url = 'https://www.mindtools.com/article/how-to-use-progressive-muscle-relaxation/',
+  url         = 'https://www.mindtools.com/article/how-to-use-progressive-muscle-relaxation/',
+  updated_at  = NOW()
+WHERE content_url ILIKE '%anxietycanada.com%'
+   OR url         ILIKE '%anxietycanada.com%';
+
+UPDATE resources
+SET
+  content_url = 'https://psychcentral.com/stress/stress-management-strategies-for-students',
+  url         = 'https://psychcentral.com/stress/stress-management-strategies-for-students',
+  updated_at  = NOW()
+WHERE content_url ILIKE '%dartmouth.edu%'
+   OR url         ILIKE '%dartmouth.edu%';
+
+-- ─────────────────────────────────────────────────────────────
 -- Verification:
 -- SELECT category, type, COUNT(*) FROM resources WHERE is_active = TRUE GROUP BY category, type ORDER BY category;
+-- SELECT title, content_url FROM resources WHERE is_active = TRUE ORDER BY category, type;
 -- ─────────────────────────────────────────────────────────────

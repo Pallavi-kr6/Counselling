@@ -266,10 +266,16 @@ const AICounselling = () => {
   // Fetch consent status on mount
   useEffect(() => {
     const checkConsent = async () => {
+      // Add a 5-second timeout so a slow/failing API doesn't block the UI forever
+      const timeoutId = setTimeout(() => {
+        setHasConsented(prev => prev === null ? false : prev);
+      }, 5000);
       try {
         const res = await api.get(`/profiles/student/${user?.id || 'me'}/consent`);
+        clearTimeout(timeoutId);
         setHasConsented(!!res.data.consent);
       } catch (err) {
+        clearTimeout(timeoutId);
         console.error('Failed to check consent:', err);
         setHasConsented(false); // default to ask
       }
@@ -625,9 +631,53 @@ const AICounselling = () => {
                         {msg.role === 'bot' && (
                           <div className="message-avatar bot-avatar"><FiHeart size={14} /></div>
                         )}
-                        <div className={`message-bubble ${msg.role}`}>
-                          {msg.content || msg.text}
-                        </div>
+                        {msg.role === 'error' ? (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '0.5rem',
+                            background: '#fff7ed',
+                            border: '1px solid #fb923c',
+                            borderRadius: '12px',
+                            padding: '10px 14px',
+                            color: '#9a3412',
+                            fontSize: '0.9rem',
+                            maxWidth: 380,
+                            flexDirection: 'column',
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <FiAlertTriangle size={16} color="#f97316" style={{ flexShrink: 0 }} />
+                              <span>{msg.content || msg.text}</span>
+                            </div>
+                            <button
+                              onClick={() => {
+                                // Find the last user message and retry it
+                                const lastUserMsg = [...chatHistoryRef.current].reverse().find(m => m.role === 'user');
+                                if (lastUserMsg) {
+                                  setChatHistory(prev => prev.filter(m => m.id !== msg.id));
+                                  setInput(lastUserMsg.content || lastUserMsg.text || '');
+                                }
+                              }}
+                              style={{
+                                alignSelf: 'flex-end',
+                                background: '#fff',
+                                border: '1px solid #fb923c',
+                                borderRadius: '8px',
+                                color: '#ea580c',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                padding: '4px 10px',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              ↺ Try again
+                            </button>
+                          </div>
+                        ) : (
+                          <div className={`message-bubble ${msg.role}`}>
+                            {msg.content || msg.text}
+                          </div>
+                        )}
                       </motion.div>
                       {msg.role === 'bot' && msg.suggestedResource && (
                         <SuggestedResourceCard resource={msg.suggestedResource} />

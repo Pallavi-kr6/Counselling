@@ -250,7 +250,7 @@ const BookAppointmentDayOrder = () => {
                     <FiCheckCircle className="summary-icon" />
                     <div className="summary-text">
                       <strong>{selectedCounsellor.counsellor_name}</strong>
-                      <span>{new Date(selectedDate).toDateString()} @ {selectedSlot.start_time}</span>
+                      <span>{new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} @ {selectedSlot.start_time}</span>
                     </div>
                   </motion.div>
                 )}

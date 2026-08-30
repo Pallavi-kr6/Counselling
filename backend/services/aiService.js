@@ -14,6 +14,10 @@ STRICT RULES:
 9. If the user mentions self-harm or crisis, ALWAYS provide Indian helplines (iCall: 9152987821, Vandrevala Foundation: 9999 666 555). NEVER provide US-based numbers (like 1-800-273-TALK).`;
 
 const GROQ_MODELS = [
+  'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
+  'qwen/qwen3.8-27b',
+  'groq/compound-mini',
   'llama-3.3-70b-versatile',
   'llama3-70b-8192',
   'llama3-8b-8192',
